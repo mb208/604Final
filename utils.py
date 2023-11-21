@@ -66,10 +66,15 @@ def load_data(daily, station = None):
     return data
 
 # I guess this is how you to do train test splits for temporal data 
-def train_test_split(data, date):
-    data["date"] = pd.to_datetime(data["date"])
-    train_data = data[data['date'] < date]
-    test_data = data[data['date'] >= date]
+def train_test_split(data, date, daily=True):
+    if daily:
+        data["date"] = pd.to_datetime(data["date"])
+        train_data = data[data['date'] < date]
+        test_data = data[data['date'] >= date]
+    else:
+        data["time"] = pd.to_datetime(data["time"])
+        train_data = data[data['time'] < date]
+        test_data = data[data['time'] >= date]
     return train_data, test_data
 
 

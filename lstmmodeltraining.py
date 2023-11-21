@@ -18,6 +18,8 @@ parser.add_argument('--is_daily', default= 1, type=int,
                     help='Daily or hourly data')
 parser.add_argument("--predictor", default="temp_min", type=str,
                     help="Predictor to use")
+parser.add_argument("--hidden_units", default=32, type=int,
+                    help="Number of hidden units in LSTM")
 
 if __name__ == "__main__":
     # Load data
@@ -26,15 +28,38 @@ if __name__ == "__main__":
     test_date = args.testdate
     window_size = args.window_size
     daily = args.is_daily
+    predictor = args.predictor
+    hidden_units = args.hidden_units
+    learning_rate = 5e-3
 
-    # Test something something
-
-
-    
     print("Loading data...")
     data = utils.load_data(daily, station)
-    train_data, test_data = utils.train_test_split(data, test_date)
-    print(test_data.head())
+    train_data, test_data = utils.train_test_split(data, test_date, daily)
+
+    # Min temperature Data loaders
+    train_data= utils.WindowDataset(train_data["temp_min"], window_size, 4)
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=32, shuffle=True)
+
+    test_data = utils.WindowDataset(test_data["temp_min"], window_size, 4)
+    test_loader = torch.utils.data.DataLoader(test_data, batch_size=32, shuffle=False)
+
+    # Create model
+    model = utils.LSTM(input_size=window_size, hidden_size=hidden_units, output_size=4, num_layers=1, dropout=0.0)
+    loss_function = torch.nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
+    # Train model
+    print("Training model...")
+    utils.train_loop(model, train_loader,  optimizer, loss_function, epochs=200)
+
+    # Test model
+    print("Testing model...")
+    print("TEST LOSS: {}".format(utils.test_model(model, test_loader, loss_function)))
+
+
+
+
+
 
 
 
