@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import pandas as pd
 
 
 class WindowDataset(torch.utils.data.Dataset):
@@ -51,16 +52,25 @@ class LSTM(torch.nn.Module):
         return output
 
 
+def filter_data_by_station(data, station):
+    return data[data['station'] == station]
+
+
+def load_data(daily, station = None):
+    if daily:
+        data = pd.read_csv("data/daily_data.csv")
+    else:
+        data = pd.read_csv("data/hourly_data.csv")
+    if station:
+        data = filter_data_by_station(data, station)
+    return data
+
 # I guess this is how you to do train test splits for temporal data 
 def train_test_split(data, date):
     data["date"] = pd.to_datetime(data["date"])
     train_data = data[data['date'] < date]
     test_data = data[data['date'] >= date]
     return train_data, test_data
-
-
-def filter_data_by_station(data, station):
-    return data[data['station'] == station]
 
 
 def train_model(model, data_loader, optimizer, loss_fn):
