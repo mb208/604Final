@@ -21,6 +21,8 @@ parser.add_argument("--predictor", default="temp_min", type=str,
 parser.add_argument("--hidden_units", default=32, type=int,
                     help="Number of hidden units in LSTM")
 
+device = ("cuda" if torch.cuda.is_available() else "cpu")
+
 if __name__ == "__main__":
     # Load data
     args, unknown = parser.parse_known_args()

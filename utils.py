@@ -78,12 +78,12 @@ def train_test_split(data, date, daily=True):
     return train_data, test_data
 
 
-def train_model(model, data_loader, optimizer, loss_fn):
+def train_model(model, data_loader, optimizer, loss_fn, device = "cpu"):
     model.train()
     train_loss = 0
     for batch_idx, (data, target) in enumerate(data_loader):
         optimizer.zero_grad()
-        output = model(data)
+        output = model(data.to(device))
         loss_t = loss_fn(output, target)
         loss_t.backward()
         optimizer.step()
@@ -100,8 +100,8 @@ def test_model(model, data_loader, loss_fn):
             test_loss += loss_t.item()
     return test_loss / len(data_loader)
 
-def train_loop(model, data_loader, optimizer, loss, epochs=1):
+def train_loop(model, data_loader, optimizer, loss, device = "cpu", epochs=1):
     for epoch in range(epochs):
-        train_loss = train_model(model, data_loader, optimizer, loss)
+        train_loss = train_model(model, data_loader, optimizer, loss, device)
         if epoch % 10 == 0:
             print("Epoch: {}, Loss: {}".format(epoch, train_loss))
