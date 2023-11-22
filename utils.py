@@ -1,14 +1,17 @@
 import torch
 import numpy as np
 import pandas as pd
-
+from sklearn import preprocessing
 
 class WindowDataset(torch.utils.data.Dataset):
-    def __init__(self, data, window_size, output_size):
+    def __init__(self, data, window_size, output_size, predictor = 0):
         arr = np.array(data)
-        self.data = torch.Tensor(arr.reshape(-1, 1))
+        if len(arr.shape) == 1:
+            arr = arr.reshape(-1, 1)
+        self.data = torch.Tensor(arr)
         self.window_size = window_size
         self.output_size = output_size
+        self.predictor = predictor
 
     def __len__(self):
         return len(self.data) - self.output_size - 1
@@ -17,13 +20,13 @@ class WindowDataset(torch.utils.data.Dataset):
         if index >= self.window_size - 1 and index + self.output_size + 1 <= len(self.data):
             x_start = index - self.window_size + 1
             x = self.data[x_start:index + 1, :]
-            y = self.data[index + 1:index+self.output_size + 1, :]
+            y = self.data[index + 1:index+self.output_size + 1, self.predictor:(self.predictor + 1)]
         elif index < self.window_size - 1:
             # x = torch.zeros(self.window_size)
             padding = self.data[0].repeat(self.window_size - index - 1, 1)
             x = self.data[0:(index + 1), :]
             x = torch.cat((padding, x), 0)
-            y = self.data[index + 1:index+self.output_size + 1, :]
+            y = self.data[index + 1:index+self.output_size + 1, self.predictor:(self.predictor + 1)]
         else:
             raise IndexError("Index out of bounds")
         
@@ -43,12 +46,16 @@ class LSTM(torch.nn.Module):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.dropout = dropout
-        self.lstm = torch.nn.LSTM(input_size, hidden_size, num_layers, dropout=self.dropout)
+        self.lstm = torch.nn.LSTM(input_size, hidden_size, num_layers, dropout=self.dropout, batch_first=True)
         self.linear = torch.nn.Linear(hidden_size, output_size)
 
     def forward(self, input):
-        output, (hidden, cell) = self.lstm(input)
-        output = self.linear(output)
+        h0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size).requires_grad_()
+        c0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size).requires_grad_()
+
+
+        output, (hidden, cell) = self.lstm(input, (h0.detach(), c0.detach()))
+        output = self.linear(output[:, -1, :])
         return output
 
 
@@ -63,6 +70,10 @@ def load_data(daily, station = None):
         data = pd.read_csv("data/hourly_data.csv")
     if station:
         data = filter_data_by_station(data, station)
+    else:
+        le = preprocessing.LabelEncoder()
+        le.fit(data["station"])
+        data["station"] = le.transform(data["station"])
     return data
 
 # I guess this is how you to do train test splits for temporal data 
@@ -97,7 +108,7 @@ def test_model(model, data_loader, loss_fn):
         for batch_idx, (data, target) in enumerate(data_loader):
             output = model(data)
             loss_t = loss_fn(output, target)
-            test_loss += loss_t.item()
+            test_loss += np.sqrt(loss_t.item())
     return test_loss / len(data_loader)
 
 def train_loop(model, data_loader, optimizer, loss, device = "cpu", epochs=1):
