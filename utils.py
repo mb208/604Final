@@ -3,6 +3,9 @@ import numpy as np
 import pandas as pd
 from sklearn import preprocessing
 
+from datetime import datetime, date, timedelta
+import matplotlib.pyplot as plt
+from meteostat import Point, Daily, Hourly, Stations
 class WindowDataset(torch.utils.data.Dataset):
     def __init__(self, data, window_size, output_size, predictor = 0):
         arr = np.array(data)
@@ -62,10 +65,9 @@ class LSTM(torch.nn.Module):
         output = self.linear(output[:, -1, :])
         return output
 
-
+# Data Loading / Processing functions
 def filter_data_by_station(data, station):
     return data[data['station'] == station]
-
 
 def load_data(daily, station = None):
     if daily:
@@ -84,6 +86,51 @@ def load_data(daily, station = None):
         data["station"] = le.transform(data["station"])
     return data
 
+__CITIES = (
+    "PANC KBOI KORD KDEN KDTW PHNL KIAH KMIA KMIC KOKC KBNA "
+    "KARB KJFK KPHX KPWM KPDX KSLC KSAN KSFO KSEA KDCA"
+).split(" ")
+
+def pull_data(daily, window=7):
+    t = date.today()
+    current_date = datetime(t.year, t.month, t.day)
+    start = current_date - timedelta(days=window)
+    stations = Stations()
+    stations = stations.region(country="US").fetch()
+    meteo_ids = list(stations[stations["icao"].isin(__CITIES)].index.unique())
+    
+    data = Hourly(loc = meteo_ids, start=start, end=current_date).fetch().reset_index()
+    data["date"] = data.time.dt.date
+    data = data.assign(snow = lambda x: ((x.coco >= 12 ) & (x.coco <=16)))
+    
+    if daily:
+        data = (data
+                .groupby(['station','date'])
+                .agg(temp_max=('temp', 'max'),
+                     temp_mean=('temp', 'mean'),
+                     temp_min=('temp', 'min'),
+                     rainfall=('prcp', lambda x: (x > 0).any()),
+                     snow=('snow', lambda x: x.any()))
+                )
+        data["date"] = pd.to_datetime(data["date"])
+        data["rainfall"] = (data["rainfall"] == True).astype(int)
+        data["snow"] = (data["snow"] == True).astype(int)
+    else:
+        data["time"] = pd.to_datetime(data["time"])
+        
+    if station:
+        data = filter_data_by_station(data, station)
+    else:
+        le = preprocessing.LabelEncoder()
+        le.fit(data["station"])
+        data["station"] = le.transform(data["station"])
+    return data
+
+    
+    
+    
+    
+    
 # I guess this is how you to do train test splits for temporal data 
 def train_test_split(data, date, daily=True):
     if daily:
