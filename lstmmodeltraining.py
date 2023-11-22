@@ -34,11 +34,34 @@ if __name__ == "__main__":
     predictor = args.predictor
     hidden_units = args.hidden_units
     learning_rate = 5e-3
+    if predictor == None:
+        list_of_vars = ["temp_min", "temp_max", "temp_mean", "station"]
+        list_of_vars_2 = ["temp_min", "temp_max", "temp_mean", "rainfall", "snow", "station"]
+    else:
+        list_of_vars =  [predictor, "station"]
+        list_of_vars_2 = [predictor, "station"]
     names_models = {
         0 : "temp_min",
         1 : "temp_max",
-        2 : "temp_mean"
+        2 : "temp_mean",
+        3 : "rainfall",
+        4 : "snow"
     }
+    loss_functions = {
+        0 : torch.nn.MSELoss(),
+        1 : torch.nn.MSELoss(),
+        2 : torch.nn.MSELoss(),
+        3 : utils.SpecialCrossEntropyLoss(),
+        4 : utils.SpecialCrossEntropyLoss()
+    }
+    predictors_list = {
+        0 : list_of_vars,
+        1 : list_of_vars,
+        2 : list_of_vars,
+        3 : list_of_vars_2,
+        4 : list_of_vars_2
+    }
+
     model_path = "models/lstm/"
 
     # Load data
@@ -46,24 +69,20 @@ if __name__ == "__main__":
     data = utils.load_data(daily, station)
     train_data_pd, test_data_pd = utils.train_test_split(data, test_date, daily)
 
-    # Selecting predictors to use
-    if predictor == None:
-        list_of_vars = ["temp_min", "temp_max", "temp_mean"]
-    else:
-        list_of_vars =  [predictor, "station"]
+   
 
-    for i in range(3):
-        train_data= utils.WindowDataset(train_data_pd[list_of_vars], window_size, 4, i)
+    for i in range(5):
+        train_data= utils.WindowDataset(train_data_pd[predictors_list[i]], window_size, 4, i)
         train_loader = torch.utils.data.DataLoader(train_data, batch_size=32, shuffle=True)
 
-        test_data = utils.WindowDataset(test_data_pd[list_of_vars], window_size, 4, i)
+        test_data = utils.WindowDataset(test_data_pd[predictors_list[i]], window_size, 4, i)
         test_loader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False)
         x, y = next(iter(train_loader))
 
         # Create model
         inputsize = x.shape[2]
         model = utils.LSTM(input_size=inputsize, hidden_size=hidden_units, output_size=4, num_layers=1, dropout=0.0)
-        loss_function = torch.nn.MSELoss()
+        loss_function = loss_functions[i]
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
         # Train model
@@ -74,6 +93,9 @@ if __name__ == "__main__":
         # Test model
         print("Testing model {}...".format(names_models[i]))
         print("TEST LOSS for model {} : {}".format(names_models[i], utils.test_model(model, test_loader, loss_function)))
+
+    # Classifers
+    print("Now classifying ...")
 
 
 
