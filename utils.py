@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import pandas as pd
 
 
 class WindowDataset(torch.utils.data.Dataset):
@@ -51,24 +52,38 @@ class LSTM(torch.nn.Module):
         return output
 
 
-# I guess this is how you to do train test splits for temporal data 
-def train_test_split(data, date):
-    data["date"] = pd.to_datetime(data["date"])
-    train_data = data[data['date'] < date]
-    test_data = data[data['date'] >= date]
-    return train_data, test_data
-
-
 def filter_data_by_station(data, station):
     return data[data['station'] == station]
 
 
-def train_model(model, data_loader, optimizer, loss_fn):
+def load_data(daily, station = None):
+    if daily:
+        data = pd.read_csv("data/daily_data.csv")
+    else:
+        data = pd.read_csv("data/hourly_data.csv")
+    if station:
+        data = filter_data_by_station(data, station)
+    return data
+
+# I guess this is how you to do train test splits for temporal data 
+def train_test_split(data, date, daily=True):
+    if daily:
+        data["date"] = pd.to_datetime(data["date"])
+        train_data = data[data['date'] < date]
+        test_data = data[data['date'] >= date]
+    else:
+        data["time"] = pd.to_datetime(data["time"])
+        train_data = data[data['time'] < date]
+        test_data = data[data['time'] >= date]
+    return train_data, test_data
+
+
+def train_model(model, data_loader, optimizer, loss_fn, device = "cpu"):
     model.train()
     train_loss = 0
     for batch_idx, (data, target) in enumerate(data_loader):
         optimizer.zero_grad()
-        output = model(data)
+        output = model(data.to(device))
         loss_t = loss_fn(output, target)
         loss_t.backward()
         optimizer.step()
@@ -85,8 +100,8 @@ def test_model(model, data_loader, loss_fn):
             test_loss += loss_t.item()
     return test_loss / len(data_loader)
 
-def train_loop(model, data_loader, optimizer, loss, epochs=1):
+def train_loop(model, data_loader, optimizer, loss, device = "cpu", epochs=1):
     for epoch in range(epochs):
-        train_loss = train_model(model, data_loader, optimizer, loss)
+        train_loss = train_model(model, data_loader, optimizer, loss, device)
         if epoch % 10 == 0:
             print("Epoch: {}, Loss: {}".format(epoch, train_loss))
