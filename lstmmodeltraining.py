@@ -39,12 +39,12 @@ if __name__ == "__main__":
         1 : "temp_max",
         2 : "temp_mean"
     }
-    model_path = "models/"
+    model_path = "models/lstm/"
 
     # Load data
     print("Loading data...")
     data = utils.load_data(daily, station)
-    train_data, test_data = utils.train_test_split(data, test_date, daily)
+    train_data_pd, test_data_pd = utils.train_test_split(data, test_date, daily)
 
     # Selecting predictors to use
     if predictor == None:
@@ -53,10 +53,10 @@ if __name__ == "__main__":
         list_of_vars =  [predictor, "station"]
 
     for i in range(3):
-        train_data= utils.WindowDataset(train_data[list_of_vars], window_size, 4, i)
+        train_data= utils.WindowDataset(train_data_pd[list_of_vars], window_size, 4, i)
         train_loader = torch.utils.data.DataLoader(train_data, batch_size=32, shuffle=True)
 
-        test_data = utils.WindowDataset(test_data[list_of_vars], window_size, 4, i)
+        test_data = utils.WindowDataset(test_data_pd[list_of_vars], window_size, 4, i)
         test_loader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False)
         x, y = next(iter(train_loader))
 
@@ -67,12 +67,13 @@ if __name__ == "__main__":
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
         # Train model
-        print("Training model...")
-        utils.train_loop(model, train_loader,  optimizer, loss_function, epochs=200)
+        print("Training model {}...".format(names_models[i]))
+        utils.train_loop(model, train_loader,  optimizer, loss_function, epochs=20)
+        torch.save(model.state_dict(), model_path + names_models[i] + ".pth")
 
         # Test model
-        print("Testing model...")
-        print("TEST LOSS: {}".format(utils.test_model(model, test_loader, loss_function)))
+        print("Testing model {}...".format(names_models[i]))
+        print("TEST LOSS for model {} : {}".format(names_models[i], utils.test_model(model, test_loader, loss_function)))
 
 
 
