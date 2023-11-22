@@ -40,28 +40,13 @@ if __name__ == "__main__":
     else:
         list_of_vars =  [predictor, "station"]
         list_of_vars_2 = [predictor, "station"]
-    names_models = {
-        0 : "temp_min",
-        1 : "temp_max",
-        2 : "temp_mean",
-        3 : "rainfall",
-        4 : "snow"
-    }
-    loss_functions = {
-        0 : torch.nn.MSELoss(),
-        1 : torch.nn.MSELoss(),
-        2 : torch.nn.MSELoss(),
-        3 : utils.SpecialCrossEntropyLoss(),
-        4 : utils.SpecialCrossEntropyLoss()
-    }
-    predictors_list = {
-        0 : list_of_vars,
-        1 : list_of_vars,
-        2 : list_of_vars,
-        3 : list_of_vars_2,
-        4 : list_of_vars_2
-    }
-
+    names_models = {0 : "temp_min", 1 : "temp_max", 2 : "temp_mean", 3 : "rainfall", 4 : "snow"}
+    loss_functions = {0 : torch.nn.MSELoss(), 1 : torch.nn.MSELoss(), 2 : torch.nn.MSELoss(),
+        3 : utils.SpecialCrossEntropyLoss(), 4 : utils.SpecialCrossEntropyLoss()}
+    predictors_list = { 0 : list_of_vars, 1 : list_of_vars, 2 : list_of_vars,
+        3 : list_of_vars_2, 4 : list_of_vars_2}
+    test_processes = {0 : utils.test_model, 1 : utils.test_model, 2 : utils.test_model,
+        3 : utils.test_model_classifier, 4 : utils.test_model_classifier}
     model_path = "models/lstm/"
 
     # Load data
@@ -87,15 +72,14 @@ if __name__ == "__main__":
 
         # Train model
         print("Training model {}...".format(names_models[i]))
-        utils.train_loop(model, train_loader,  optimizer, loss_function, epochs=20)
+        utils.train_loop(model, train_loader,  optimizer, loss_function, epochs=200)
         torch.save(model.state_dict(), model_path + names_models[i] + ".pth")
 
         # Test model
         print("Testing model {}...".format(names_models[i]))
-        print("TEST LOSS for model {} : {}".format(names_models[i], utils.test_model(model, test_loader, loss_function)))
+        print("TEST LOSS for model {} : {}".format(names_models[i], test_processes[i](model, test_loader, loss_function)))
 
-    # Classifers
-    print("Now classifying ...")
+
 
 
 

@@ -119,16 +119,31 @@ def train_model(model, data_loader, optimizer, loss_fn, device = "cpu"):
         train_loss += loss_t.item()
     return train_loss / len(data_loader)
 
-def test_model(model, data_loader, loss_fn, regress = True):
+
+# MUST FIX THIS for classifier problems
+
+def test_model(model, data_loader, loss_fn):
     model.eval()
     test_loss = 0
     with torch.no_grad():
         for batch_idx, (data, target) in enumerate(data_loader):
             output = model(data)
             loss_t = loss_fn(output, target)
-            if regress:
-                test_loss += np.sqrt(loss_t.item())
+            test_loss += np.sqrt(loss_t.item())
     return test_loss / len(data_loader)
+
+def test_model_classifier(model, data_loader, loss_fn):
+    model.eval()
+    test_loss = 0
+    splits = np.zeros(4)
+    with torch.no_grad():
+        for batch_idx, (data, target) in enumerate(data_loader):
+            output = model(data).numpy()
+            target = target.numpy()
+            predictions = (output > 0.5).astype(int)
+            splits = splits + (predictions != target)
+            test_loss += np.sum(predictions != target)/target.shape[1]
+    return test_loss / len(data_loader), splits/len(data_loader)
 
 def train_loop(model, data_loader, optimizer, loss, device = "cpu", epochs=1):
     for epoch in range(epochs):
