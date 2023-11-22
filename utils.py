@@ -41,13 +41,17 @@ class WindowDataset(torch.utils.data.Dataset):
 
         # return self.data[index:index+self.window_size], self.data[index+self.window_size:index+self.window_size+self.output_size]
 class LSTM(torch.nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, num_layers=1, dropout=0.0):
+    def __init__(self, input_size, hidden_size, output_size, num_layers=1, dropout=0.0, regress=True):
         super(LSTM, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.dropout = dropout
         self.lstm = torch.nn.LSTM(input_size, hidden_size, num_layers, dropout=self.dropout, batch_first=True)
-        self.linear = torch.nn.Linear(hidden_size, output_size)
+        if regress:
+            self.linear = torch.nn.Linear(hidden_size, output_size)
+        else:
+            self.linear = torch.nn.Linear(hidden_size, 1)
+        # self.linear = torch.nn.Linear(hidden_size, output_size)
 
     def forward(self, input):
         h0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size).requires_grad_()
@@ -66,8 +70,12 @@ def filter_data_by_station(data, station):
 def load_data(daily, station = None):
     if daily:
         data = pd.read_csv("data/daily_data.csv")
+        data["date"] = pd.to_datetime(data["date"])
+        data["rainfall"] = (data["rainfall"] == True).astype(int)
+        data["snow"] = (data["snow"] == True).astype(int)
     else:
         data = pd.read_csv("data/hourly_data.csv")
+        data["time"] = pd.to_datetime(data["time"])
     if station:
         data = filter_data_by_station(data, station)
     else:
@@ -79,11 +87,9 @@ def load_data(daily, station = None):
 # I guess this is how you to do train test splits for temporal data 
 def train_test_split(data, date, daily=True):
     if daily:
-        data["date"] = pd.to_datetime(data["date"])
         train_data = data[data['date'] < date]
         test_data = data[data['date'] >= date]
     else:
-        data["time"] = pd.to_datetime(data["time"])
         train_data = data[data['time'] < date]
         test_data = data[data['time'] >= date]
     return train_data, test_data
