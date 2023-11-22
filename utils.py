@@ -91,7 +91,7 @@ __CITIES = (
     "KARB KJFK KPHX KPWM KPDX KSLC KSAN KSFO KSEA KDCA"
 ).split(" ")
 
-def pull_data(daily, window=7):
+def pull_data(daily=False, window=7):
     t = date.today()
     current_date = datetime(t.year, t.month, t.day)
     start = current_date - timedelta(days=window)
@@ -111,24 +111,17 @@ def pull_data(daily, window=7):
                      temp_min=('temp', 'min'),
                      rainfall=('prcp', lambda x: (x > 0).any()),
                      snow=('snow', lambda x: x.any()))
-                )
+                ).reset_index()
         data["date"] = pd.to_datetime(data["date"])
         data["rainfall"] = (data["rainfall"] == True).astype(int)
         data["snow"] = (data["snow"] == True).astype(int)
     else:
         data["time"] = pd.to_datetime(data["time"])
         
-    if station:
-        data = filter_data_by_station(data, station)
-    else:
-        le = preprocessing.LabelEncoder()
-        le.fit(data["station"])
-        data["station"] = le.transform(data["station"])
+    le = preprocessing.LabelEncoder()
+    le.fit(data["station"])
+    data["station"] = le.transform(data["station"])
     return data
-
-    
-    
-    
     
     
 # I guess this is how you to do train test splits for temporal data 
