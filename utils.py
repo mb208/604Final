@@ -101,7 +101,7 @@ def pull_data(daily=False, window=7):
     
     data = Hourly(loc = meteo_ids, start=start, end=current_date).fetch().reset_index()
     data["date"] = data.time.dt.date
-    data = data.assign(snow = lambda x: ((x.coco >= 12 ) & (x.coco <=16)))
+    data = data.assign(snow = lambda x: ((x.coco >= 14 ) & (x.coco <=16))) # include 19 and 20
     
     if daily:
         data = (data
@@ -118,9 +118,9 @@ def pull_data(daily=False, window=7):
     else:
         data["time"] = pd.to_datetime(data["time"])
         
-    le = preprocessing.LabelEncoder()
-    le.fit(data["station"])
-    data["station"] = le.transform(data["station"])
+    # le = preprocessing.LabelEncoder()
+    # le.fit(data["station"])
+    # data["station"] = le.transform(data["station"])
     return data
     
     
