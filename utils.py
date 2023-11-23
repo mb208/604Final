@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 from sklearn import preprocessing
 
+
+
 from datetime import datetime, date, timedelta
 import matplotlib.pyplot as plt
 from meteostat import Point, Daily, Hourly, Stations
@@ -44,16 +46,13 @@ class WindowDataset(torch.utils.data.Dataset):
 
         # return self.data[index:index+self.window_size], self.data[index+self.window_size:index+self.window_size+self.output_size]
 class LSTM(torch.nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, num_layers=1, dropout=0.0, regress=True):
+    def __init__(self, input_size, hidden_size, output_size, num_layers=1, dropout=0.0):
         super(LSTM, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.dropout = dropout
         self.lstm = torch.nn.LSTM(input_size, hidden_size, num_layers, dropout=self.dropout, batch_first=True)
-        if regress:
-            self.linear = torch.nn.Linear(hidden_size, output_size)
-        else:
-            self.linear = torch.nn.Linear(hidden_size, 1)
+        self.linear = torch.nn.Linear(hidden_size, output_size)
         # self.linear = torch.nn.Linear(hidden_size, output_size)
 
     def forward(self, input):
@@ -64,8 +63,21 @@ class LSTM(torch.nn.Module):
         output, (hidden, cell) = self.lstm(input, (h0.detach(), c0.detach()))
         output = self.linear(output[:, -1, :])
         return output
+    
+# Data Loading / Processing functionsclass SpecialCrossEntropyLoss(torch.nn.Module):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+    
+    def forward(self, input, target):
+        loss = torch.nn.CrossEntropyLoss()
+        day1_loss = loss(input[:, 0], target[:, 0])
+        day2_loss = loss(input[:, 1], target[:, 1])
+        day3_loss = loss(input[:, 2], target[:, 2])
+        day4_loss = loss(input[:, 3], target[:, 3])
+        return day1_loss + day2_loss + day3_loss + day4_loss
 
-# Data Loading / Processing functions
+
+
 def filter_data_by_station(data, station):
     return data[data['station'] == station]
 
@@ -124,6 +136,7 @@ def pull_data(daily=False, window=7):
     return data
     
     
+
 # I guess this is how you to do train test splits for temporal data 
 def train_test_split(data, date, daily=True):
     if daily:
@@ -147,6 +160,9 @@ def train_model(model, data_loader, optimizer, loss_fn, device = "cpu"):
         train_loss += loss_t.item()
     return train_loss / len(data_loader)
 
+
+# MUST FIX THIS for classifier problems
+
 def test_model(model, data_loader, loss_fn):
     model.eval()
     test_loss = 0
@@ -156,6 +172,19 @@ def test_model(model, data_loader, loss_fn):
             loss_t = loss_fn(output, target)
             test_loss += np.sqrt(loss_t.item())
     return test_loss / len(data_loader)
+
+def test_model_classifier(model, data_loader, loss_fn):
+    model.eval()
+    test_loss = 0
+    splits = np.zeros(4)
+    with torch.no_grad():
+        for batch_idx, (data, target) in enumerate(data_loader):
+            output = model(data).numpy()
+            target = target.numpy()
+            predictions = (output > 0.5).astype(int)
+            splits = splits + (predictions != target)
+            test_loss += np.sum(predictions != target)/target.shape[1]
+    return test_loss / len(data_loader), splits/len(data_loader)
 
 def train_loop(model, data_loader, optimizer, loss, device = "cpu", epochs=1):
     for epoch in range(epochs):
