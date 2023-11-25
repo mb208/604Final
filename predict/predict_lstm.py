@@ -1,12 +1,9 @@
-import sys; sys.path.insert(0, '..') # add parent folder path where lib folder is
-
-
+# import sys; sys.path.insert(0, '..') # add parent folder path where lib folder is
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import torch
 
-import utils
+from  utils import utils
 import argparse
 import os
 import datetime
@@ -27,31 +24,35 @@ if __name__ == "__main__":
     # Variable setting
     args, unknown = parser.parse_known_args()
 
-    
     daily = args.is_daily
     hidden_units = args.hidden_units
+    
+    # Handle whether running from root or predict folder
+    if os.getcwd().split('/')[-1] == "predict":
+        model_path = "../models/lstm/"
+    else:
+        model_path = "./models/lstm/"
 
     names_models = {0 : "temp_min", 1 : "temp_max", 2 : "temp_mean", 3 : "rainfall", 4 : "snow"}
-    
+
     # For creating output file
     days = [datetime.date.today() + datetime.timedelta(days=i) for i in range(1, 5)]
-    predictors = ["min", "max", "avg", "rain", "snow"]
+    predictors = ["min", "max", "avg", "rain", "snow"] # must line up with index of names_models
 
-    model_path = "../models/lstm/"
-
+    # Storing values that will be needed during iteration
+    vars = [["temp_min", "temp_max", "temp_mean", "station"]]*3 + \
+        [["temp_min", "temp_max", "temp_mean", "rainfall", "snow", "station"]]*2
+        
+    
     data = utils.pull_data(daily)
 
     le = preprocessing.LabelEncoder()
     le.fit(data["station"])
 
-    # Map station to label ids
+    # Map station (city icao id)) to label ids
     data["station"] = le.transform(data["station"])
     city_mapping = dict(data[["station","icao"]].drop_duplicates().to_numpy())
     
-    # Storing values that will be needed during iteration
-    vars = [["temp_min", "temp_max", "temp_mean", "station"]]*3 + \
-        [["temp_min", "temp_max", "temp_mean", "rainfall", "snow", "station"]]*2
-        
     # Initial dictioary for city weather predicitons
     pred = dict()
 
