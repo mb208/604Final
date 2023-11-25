@@ -101,7 +101,7 @@ if __name__ == "__main__":
                                                                          hist_rainfall=('rainfall', 'mean'),
                                                                          hist_snow=('snow', 'mean'))
     # historical_df = historical_df.reset_index()
-    historical_df.to_csv("data/historical_data.csv")
+    historical_df.to_csv("../data/historical_data.csv")
     # print(daily_df.join(historical_df, on=['week','station'], how='left'))
     
 
