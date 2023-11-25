@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import torch
-import utils
+from utils import utils
 import argparse
 import os
 from sklearn import preprocessing
@@ -53,6 +53,7 @@ if __name__ == "__main__":
         3 : [list_of_vars_2, list_of_vars_4], 4 : [list_of_vars_2, list_of_vars_4]}
     test_processes = {0 : utils.test_model, 1 : utils.test_model, 2 : utils.test_model,
         3 : utils.test_model_classifier, 4 : utils.test_model_classifier}
+    sigmoid = {0 : False, 1 : False, 2 : False, 3 : True, 4 : True}
     model_path = "models/lstm/"
 
     # Load data
@@ -77,13 +78,13 @@ if __name__ == "__main__":
 
         # Create model
         inputsize = x.shape[2]
-        model = utils.LSTM(input_size=inputsize, hidden_size=hidden_units, output_size=4, num_layers=1, dropout=0.0)
+        model = utils.LSTM(input_size=inputsize, hidden_size=hidden_units, output_size=4, num_layers=1, dropout=0.0, sigmoid=sigmoid[i])
         loss_function = loss_functions[i]
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
         # Train model
         print("Training model {}...".format(names_models[i][0]))
-        utils.train_loop(model, train_loader,  optimizer, loss_function, epochs=200)
+        utils.train_loop(model, train_loader,  optimizer, loss_function, epochs=50)
         torch.save(model.state_dict(), model_path + names_models[i][0] + ".pth")
 
         # Test model
@@ -100,7 +101,7 @@ if __name__ == "__main__":
 
         # Create model
         inputsize = x.shape[2]
-        model_hist = utils.LSTM(input_size=inputsize, hidden_size=hidden_units, output_size=4, num_layers=1, dropout=0.0)
+        model_hist = utils.LSTM(input_size=inputsize, hidden_size=hidden_units, output_size=4, num_layers=1, dropout=0.0, sigmoid=sigmoid[i])
         loss_function = loss_functions[i]
         optimizer = torch.optim.Adam(model_hist.parameters(), lr=learning_rate)
 
