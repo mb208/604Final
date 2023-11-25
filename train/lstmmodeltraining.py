@@ -53,7 +53,7 @@ if __name__ == "__main__":
         3 : [list_of_vars_2, list_of_vars_4], 4 : [list_of_vars_2, list_of_vars_4]}
     test_processes = {0 : utils.test_model, 1 : utils.test_model, 2 : utils.test_model,
         3 : utils.test_model_classifier, 4 : utils.test_model_classifier}
-    model_path = "models/lstm/"
+    model_path = "../models/lstm/"
 
     # Load data
     print("Loading data...")
