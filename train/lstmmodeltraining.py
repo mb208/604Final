@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import torch
-import utils
+from utils import utils
 import argparse
 import os
 from sklearn import preprocessing
