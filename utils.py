@@ -64,7 +64,8 @@ class LSTM(torch.nn.Module):
         output = self.linear(output[:, -1, :])
         return output
     
-# Data Loading / Processing functionsclass SpecialCrossEntropyLoss(torch.nn.Module):
+    
+class SpecialCrossEntropyLoss(torch.nn.Module):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
     
@@ -75,6 +76,8 @@ class LSTM(torch.nn.Module):
         day3_loss = loss(input[:, 2], target[:, 2])
         day4_loss = loss(input[:, 3], target[:, 3])
         return day1_loss + day2_loss + day3_loss + day4_loss
+
+
 
 
 
@@ -111,8 +114,15 @@ def pull_data(daily=False, window=7):
     stations = stations.region(country="US").fetch()
     meteo_ids = list(stations[stations["icao"].isin(__CITIES)].index.unique())
     
+    cities = (stations[stations["icao"]
+                         .isin(__CITIES)]["icao"]
+                         .drop_duplicates()
+                         .reset_index()
+                         .rename({"id":"station"}, axis=1))
+
     data = Hourly(loc = meteo_ids, start=start, end=current_date).fetch().reset_index()
     data["date"] = data.time.dt.date
+    data["snow"] = data["coco"].isin([14, 15, 16, 21, 22])
     data = data.assign(snow = lambda x: ((x.coco >= 14 ) & (x.coco <=16))) # include 19 and 20
     
     if daily:
@@ -127,9 +137,13 @@ def pull_data(daily=False, window=7):
         data["date"] = pd.to_datetime(data["date"])
         data["rainfall"] = (data["rainfall"] == True).astype(int)
         data["snow"] = (data["snow"] == True).astype(int)
+        data = data.merge(cities, how="left", on = "station")
     else:
         data["time"] = pd.to_datetime(data["time"])
+        data = data.merge(cities, how="left", on = "station")
         
+    # Return torch dataset
+
     # le = preprocessing.LabelEncoder()
     # le.fit(data["station"])
     # data["station"] = le.transform(data["station"])
