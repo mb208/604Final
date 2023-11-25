@@ -95,6 +95,27 @@ def load_data(daily, station = None):
         data["station"] = le.transform(data["station"])
     return data
 
+def load_data_with_historical(daily, station = None):
+    if daily:
+        data = pd.read_csv("data/daily_data_one_year.csv")
+        data["date"] = pd.to_datetime(data["date"])
+        data["rainfall"] = (data["rainfall"] == True).astype(int)
+        data["snow"] = (data["snow"] == True).astype(int)
+        data["week"] = pd.DatetimeIndex(data['date']).strftime('%U').astype(int)
+        historical = pd.read_csv("data/historical_data.csv")
+        historical["week"] = historical["week"].astype(int)
+        data = pd.merge(data, historical, on=['week','station'], how='left')
+    else:
+        data = pd.read_csv("data/hourly_data.csv")
+        data["time"] = pd.to_datetime(data["time"])
+    if station:
+        data = filter_data_by_station(data, station)
+    else:
+        le = preprocessing.LabelEncoder()
+        le.fit(data["station"])
+        data["station"] = le.transform(data["station"])
+    return data
+
 
 # I guess this is how you to do train test splits for temporal data 
 def train_test_split(data, date, daily=True):
