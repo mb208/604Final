@@ -88,12 +88,13 @@ class PositionalEncoding(torch.nn.Module):
         return self.dropout(x)
     
 class Transformer(torch.nn.Module):
-    def __init__(self, d_model=512, output_size=2048, 
+    def __init__(self, d_model=512, output_size=4,dim_feedforward=2048,
                  nhead=8, num_encoder_layers=6, num_decoder_layers=6,
-                 num_layers=1, dropout=0.0, sigmoid = False):
+                 dropout=0.0, sigmoid = False):
         super(Transformer, self).__init__()
         self.d_model = d_model
         self.dim_feedforward = dim_feedforward
+        self.output_size = output_size
         self.nhead = nhead
         self.num_encoder_layers = num_encoder_layers
         self.num_decoder_layers = num_decoder_layers
@@ -101,12 +102,15 @@ class Transformer(torch.nn.Module):
         self.sigmoid = sigmoid
         
         self.pos_encoder = PositionalEncoding(d_model, dropout)
-        self.embedding = nn.Embedding(output, dim_model)
+        self.embedding = torch.nn.Embedding(output_size, d_model)
         
-        self.transformer = torch.nn.Transformer(input_size, 
-                                                hidden_size, 
-                                                num_layers, 
-                                                dropout=self.dropout, batch_first=True)
+        self.transformer = torch.nn.Transformer(d_model=d_model,
+                                                nhead=nhead,
+                                                num_encoder_layers=num_encoder_layers,
+                                                num_decoder_layers=num_decoder_layers,
+                                                dropout=self.dropout, 
+                                                dim_feedforward=dim_feedforward,
+                                                batch_first=True)
         
         
         

@@ -8,32 +8,40 @@ import argparse
 import os
 from sklearn import preprocessing
 
-
 parser = argparse.ArgumentParser()
-parser.add_argument('--station', default=None, type=str,
-                    help='Station to use')
 parser.add_argument('--testdate', default= "2023/9/19", type=str,
                     help='Date to split train/test data')
 parser.add_argument('--window_size', default= 7, type=int,
                     help='Size of window')
 parser.add_argument('--is_daily', default= 1, type=int,
                     help='Daily or hourly data')
-parser.add_argument("--predictor", default=None, type=str,
-                    help="Predictor to use")
-parser.add_argument("--hidden_units", default=32, type=int,
-                    help="Number of hidden units in LSTM")
+parser.add_argument("--d_model", default=512, type=int,
+                    help="embedding dimension")
+parser.add_argument("--nhead", default=8, type=int,
+                    help="Number of attention heads in transformer")
+parser.add_argument("--n_enc", default=6, type=int,
+                    help="Number of encoder layers in transformer")
+parser.add_argument("--n_dec", default=6, type=int,
+                    help="Number of decoder layers in transformer")
+parser.add_argument("--dropout", default=0.1, type=int,
+                    help="Number of decoder layers in transformer")
+parser.add_argument("--dim_ff", default=2048, type=int,
+                    help="dim_feedforward`` in transformer")
 
 device = ("cuda" if torch.cuda.is_available() else "cpu")
 
 if __name__ == "__main__":
     # Variable setting
     args, unknown = parser.parse_known_args()
-    station = args.station
     test_date = args.testdate
     window_size = args.window_size
     daily = args.is_daily
-    predictor = args.predictor
-    hidden_units = args.hidden_units
+    nhead = args.nhead
+    d_model = args.d_model
+    n_enc = args.n_enc
+    n_dec = args.n_dec
+    dropout = args.dropout
+    dim_ff = args.dim_ff
     learning_rate = 5e-3
     if predictor == None:
         list_of_vars = ["temp_min", "temp_max", "temp_mean", "station"]
@@ -58,12 +66,12 @@ if __name__ == "__main__":
 
     # Load data
     print("Loading data...")
-    data = utils.load_data(daily, station)
+    data = utils.load_data(daily = daily)
     train_data_pd, test_data_pd = models.train_test_split(data, test_date, daily)
 
     # Load historical data
     print("Loading historical data...")
-    historical_data = utils.load_data_with_historical(daily, station)
+    historical_data = utils.load_data_with_historical(daily)
     train_data_hist_pd, test_data_hist_pd = models.train_test_split(historical_data, test_date, daily)
 
    
@@ -78,7 +86,13 @@ if __name__ == "__main__":
 
         # Create model
         inputsize = x.shape[2]
-        model = models.LSTM(input_size=inputsize, hidden_size=hidden_units, output_size=4, num_layers=1, dropout=0.0)
+        model = models.Transformer(d_model=d_model, 
+                                   nhead=nhead, 
+                                   num_encoder_layers=n_enc,
+                                   num_decoder_layers=n_dec, 
+                                   dropout=dropout,
+                                   dim_feedforward=dim_ff,
+                                   output_size=4)
         loss_function = loss_functions[i]
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -101,7 +115,13 @@ if __name__ == "__main__":
 
         # Create model
         inputsize = x.shape[2]
-        model_hist = models.LSTM(input_size=inputsize, hidden_size=hidden_units, output_size=4, num_layers=1, dropout=0.0)
+        model_hist = models.Transformer(d_model=d_model, 
+                                   nhead=nhead, 
+                                   num_encoder_layers=n_enc,
+                                   num_decoder_layers=n_dec, 
+                                   dropout=dropout,
+                                   dim_feedforward=dim_ff,
+                                   output_size=4)
         loss_function = loss_functions[i]
         optimizer = torch.optim.Adam(model_hist.parameters(), lr=learning_rate)
 
