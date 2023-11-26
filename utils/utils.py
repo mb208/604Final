@@ -46,13 +46,16 @@ class WindowDataset(torch.utils.data.Dataset):
 
         # return self.data[index:index+self.window_size], self.data[index+self.window_size:index+self.window_size+self.output_size]
 class LSTM(torch.nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, num_layers=1, dropout=0.0):
+    def __init__(self, input_size, hidden_size, output_size, num_layers=1, dropout=0.0, sigmoid = False):
         super(LSTM, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.dropout = dropout
+        self.sigmoid = sigmoid
         self.lstm = torch.nn.LSTM(input_size, hidden_size, num_layers, dropout=self.dropout, batch_first=True)
         self.linear = torch.nn.Linear(hidden_size, output_size)
+        if sigmoid:
+            self.activation = torch.nn.Sigmoid()
         # self.linear = torch.nn.Linear(hidden_size, output_size)
 
     def forward(self, input):
@@ -62,6 +65,8 @@ class LSTM(torch.nn.Module):
 
         output, (hidden, cell) = self.lstm(input, (h0.detach(), c0.detach()))
         output = self.linear(output[:, -1, :])
+        if self.sigmoid:
+            output = self.activation(output)
         return output
     
     
