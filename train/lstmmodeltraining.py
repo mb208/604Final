@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import torch
 from utils import utils
+from utils import models
 import argparse
 import os
 from sklearn import preprocessing
@@ -48,11 +49,11 @@ if __name__ == "__main__":
     names_models = {0 : ["temp_min", "temp_min_hist"], 1 : ["temp_max", "temp_max_hist"], 2 : ["temp_mean", "temp_mean_hist"], 
                     3 : ["rainfall", "rainfall_hist"], 4 : ["snow", "snow_hist"]}
     loss_functions = {0 : torch.nn.MSELoss(), 1 : torch.nn.MSELoss(), 2 : torch.nn.MSELoss(),
-        3 : utils.SpecialCrossEntropyLoss(), 4 : utils.SpecialCrossEntropyLoss()}
+        3 : models.SpecialCrossEntropyLoss(), 4 : models.SpecialCrossEntropyLoss()}
     predictors_list = { 0 : [list_of_vars, list_of_vars_3], 1 : [list_of_vars, list_of_vars_3], 2 : [list_of_vars, list_of_vars_3],
         3 : [list_of_vars_2, list_of_vars_4], 4 : [list_of_vars_2, list_of_vars_4]}
-    test_processes = {0 : utils.test_model, 1 : utils.test_model, 2 : utils.test_model,
-        3 : utils.test_model_classifier, 4 : utils.test_model_classifier}
+    test_processes = {0 : models.test_model, 1 : models.test_model, 2 : models.test_model,
+        3 : models.test_model_classifier, 4 : models.test_model_classifier}
     model_path = "../models/lstm/"
 
     # Load data
@@ -68,22 +69,22 @@ if __name__ == "__main__":
    
 
     for i in range(5):
-        train_data= utils.WindowDataset(train_data_pd[predictors_list[i][0]], window_size, 4, i)
+        train_data= models.WindowDataset(train_data_pd[predictors_list[i][0]], window_size, 4, i)
         train_loader = torch.utils.data.DataLoader(train_data, batch_size=32, shuffle=True)
 
-        test_data = utils.WindowDataset(test_data_pd[predictors_list[i][0]], window_size, 4, i)
+        test_data = models.WindowDataset(test_data_pd[predictors_list[i][0]], window_size, 4, i)
         test_loader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False)
         x, y = next(iter(train_loader))
 
         # Create model
         inputsize = x.shape[2]
-        model = utils.LSTM(input_size=inputsize, hidden_size=hidden_units, output_size=4, num_layers=1, dropout=0.0)
+        model = models.LSTM(input_size=inputsize, hidden_size=hidden_units, output_size=4, num_layers=1, dropout=0.0)
         loss_function = loss_functions[i]
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
         # Train model
         print("Training model {}...".format(names_models[i][0]))
-        utils.train_loop(model, train_loader,  optimizer, loss_function, epochs=200)
+        models.train_loop(model, train_loader,  optimizer, loss_function, epochs=200)
         torch.save(model.state_dict(), model_path + names_models[i][0] + ".pth")
 
         # Test model
@@ -91,22 +92,22 @@ if __name__ == "__main__":
         print("TEST LOSS for model {} : {}".format(names_models[i][0], test_processes[i](model, test_loader, loss_function)))
 
         # Train model with historical data
-        train_data_hist= utils.WindowDataset(train_data_hist_pd[predictors_list[i][1]], window_size, 4, i)
+        train_data_hist= models.WindowDataset(train_data_hist_pd[predictors_list[i][1]], window_size, 4, i)
         train_loader_hist = torch.utils.data.DataLoader(train_data_hist, batch_size=32, shuffle=True)
 
-        test_data_hist = utils.WindowDataset(test_data_hist_pd[predictors_list[i][1]], window_size, 4, i)
+        test_data_hist = models.WindowDataset(test_data_hist_pd[predictors_list[i][1]], window_size, 4, i)
         test_loader_hist = torch.utils.data.DataLoader(test_data_hist, batch_size=1, shuffle=False)
         x, y = next(iter(train_loader_hist))
 
         # Create model
         inputsize = x.shape[2]
-        model_hist = utils.LSTM(input_size=inputsize, hidden_size=hidden_units, output_size=4, num_layers=1, dropout=0.0)
+        model_hist = models.LSTM(input_size=inputsize, hidden_size=hidden_units, output_size=4, num_layers=1, dropout=0.0)
         loss_function = loss_functions[i]
         optimizer = torch.optim.Adam(model_hist.parameters(), lr=learning_rate)
 
         # Train model
         print("Training model {}...".format(names_models[i][1]))
-        utils.train_loop(model_hist, train_loader_hist,  optimizer, loss_function, epochs=50)
+        models.train_loop(model_hist, train_loader_hist,  optimizer, loss_function, epochs=50)
         torch.save(model_hist.state_dict(), model_path + names_models[i][1] + ".pth")
 
         # Test model
