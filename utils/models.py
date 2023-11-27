@@ -47,6 +47,7 @@ class WindowDataset(torch.utils.data.Dataset):
 class LSTM(torch.nn.Module):
     def __init__(self, input_size, hidden_size, output_size, num_layers=1, dropout=0.0, sigmoid = False):
         super(LSTM, self).__init__()
+        self.model_type = 'LSTM'
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.dropout = dropout
@@ -86,96 +87,125 @@ class PositionalEncoding(torch.nn.Module):
         """
         x = x + self.pe[:x.size(0)]
         return self.dropout(x)
-    
+
+
 class Transformer(torch.nn.Module):
-    def __init__(self, d_model=512, output_size=4,dim_feedforward=2048,
-                 nhead=8, num_encoder_layers=6, num_decoder_layers=6,
-                 dropout=0.0, sigmoid = False):
+    # d_model : number of features
+    def __init__(self,feature_size=7,num_layers=3,dropout=0):
         super(Transformer, self).__init__()
-        self.d_model = d_model
-        self.dim_feedforward = dim_feedforward
-        self.output_size = output_size
-        self.nhead = nhead
-        self.num_encoder_layers = num_encoder_layers
-        self.num_decoder_layers = num_decoder_layers
-        self.dropout = dropout
-        self.sigmoid = sigmoid
-        
-        self.pos_encoder = PositionalEncoding(d_model, dropout)
-        self.embedding = torch.nn.Embedding(output_size, d_model)
-        
-        self.transformer = torch.nn.Transformer(d_model=d_model,
-                                                nhead=nhead,
-                                                num_encoder_layers=num_encoder_layers,
-                                                num_decoder_layers=num_decoder_layers,
-                                                dropout=self.dropout, 
-                                                dim_feedforward=dim_feedforward,
-                                                batch_first=True)
-        
-        
-        
-        self.linear = torch.nn.Linear(d_model, output_size)
-        
-        if sigmoid:
-            self.activation = torch.nn.Sigmoid()
-            
-    def init_weights(self) -> None:
-        initrange = 0.1
-        self.embedding.weight.data.uniform_(-initrange, initrange)
-        self.linear.bias.data.zero_()
-        self.linear.weight.data.uniform_(-initrange, initrange)
+        self.model_type = 'Transformer'
+        self.encoder_layer = torch.nn.TransformerEncoderLayer(d_model=feature_size, nhead=7, dropout=dropout)
+        self.transformer_encoder = torch.nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)        
+        self.decoder = torch.nn.Linear(feature_size,1)
+        self.init_weights()
 
-    # def forward(self, input):
-    #     h0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size).requires_grad_()
-    #     c0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size).requires_grad_()
+    def init_weights(self):
+        initrange = 0.1    
+        self.decoder.bias.data.zero_()
+        self.decoder.weight.data.uniform_(-initrange, initrange)
 
-
-    #     output, (hidden, cell) = self.transformer(input, (h0.detach(), c0.detach()))
-    #     output = self.linear(output[:, -1, :])
-    #     if self.sigmoid:
-    #         output = self.activation(output)
-    #     return output   
-    
-    def forward(
-        self,
-        src,
-        tgt,
-    ):
-        # Src size must be (batch_size, src sequence length)
-        # Tgt size must be (batch_size, tgt sequence length)
-
-        # Embedding + positional encoding - Out size = (batch_size, sequence length, dim_model)
-        src = self.embedding(src) * math.sqrt(self.dim_model)
-        tgt = self.embedding(tgt) * math.sqrt(self.dim_model)
-        src = self.pos_encoder(src)
-        tgt = self.pos_encoder(tgt)
-
-        # we permute to obtain size (sequence length, batch_size, dim_model),
-        src = src.permute(1, 0, 2)
-        tgt = tgt.permute(1, 0, 2)
-
-        # Transformer blocks - Out size = (sequence length, batch_size, num_tokens)
-        transformer_out = self.transformer(src, tgt)
-        out = self.out(transformer_out)
-
-        if self.sigmoid:
-            out = self.activation(out)
-            
-        return out
-    
-    def get_tgt_mask(self, size) -> torch.tensor:
-        # Generates a squeare matrix where the each row allows one word more to be seen
-        mask = torch.tril(torch.ones(size, size) == 1) # Lower triangular matrix
-        mask = mask.float()
-        mask = mask.masked_fill(mask == 0, float('-inf')) # Convert zeros to -inf
-        mask = mask.masked_fill(mask == 1, float(0.0)) # Convert ones to 0
-    
+    def _generate_square_subsequent_mask(self, sz):
+        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
+        mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
         return mask
+
+    def forward(self, src, device):
+        
+        mask = self._generate_square_subsequent_mask(len(src)).to(device)
+        output = self.transformer_encoder(src,mask)
+        output = self.decoder(output)
+        return output
     
-    def create_pad_mask(self, matrix: torch.tensor, pad_token: int) -> torch.tensor:
-        # If matrix = [1,2,3,0,0,0] where pad_token=0, the result mask is
-        # [False, False, False, True, True, True]
-        return (matrix == pad_token)
+    
+# class Transformer(torch.nn.Module):
+#     def __init__(self, d_model=512, output_size=4,dim_feedforward=2048,
+#                  nhead=8, num_encoder_layers=6, num_decoder_layers=6,
+#                  dropout=0.0, sigmoid = False):
+#         super(Transformer, self).__init__()
+#         self.d_model = d_model
+#         self.dim_feedforward = dim_feedforward
+#         self.output_size = output_size
+#         self.nhead = nhead
+#         self.num_encoder_layers = num_encoder_layers
+#         self.num_decoder_layers = num_decoder_layers
+#         self.dropout = dropout
+#         self.sigmoid = sigmoid
+        
+#         self.pos_encoder = PositionalEncoding(d_model, dropout)
+#         self.embedding = torch.nn.Embedding(output_size, d_model)
+        
+#         self.transformer = torch.nn.Transformer(d_model=d_model,
+#                                                 nhead=nhead,
+#                                                 num_encoder_layers=num_encoder_layers,
+#                                                 num_decoder_layers=num_decoder_layers,
+#                                                 dropout=self.dropout, 
+#                                                 dim_feedforward=dim_feedforward,
+#                                                 batch_first=True)
+        
+        
+        
+#         self.linear = torch.nn.Linear(d_model, output_size)
+        
+#         if sigmoid:
+#             self.activation = torch.nn.Sigmoid()
+            
+#     def init_weights(self) -> None:
+#         initrange = 0.1
+#         self.embedding.weight.data.uniform_(-initrange, initrange)
+#         self.linear.bias.data.zero_()
+#         self.linear.weight.data.uniform_(-initrange, initrange)
+
+#     # def forward(self, input):
+#     #     h0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size).requires_grad_()
+#     #     c0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size).requires_grad_()
+
+
+#     #     output, (hidden, cell) = self.transformer(input, (h0.detach(), c0.detach()))
+#     #     output = self.linear(output[:, -1, :])
+#     #     if self.sigmoid:
+#     #         output = self.activation(output)
+#     #     return output   
+    
+#     def forward(
+#         self,
+#         src,
+#         tgt,
+#     ):
+#         # Src size must be (batch_size, src sequence length)
+#         # Tgt size must be (batch_size, tgt sequence length)
+
+#         # Embedding + positional encoding - Out size = (batch_size, sequence length, dim_model)
+#         src = self.embedding(src) * math.sqrt(self.dim_model)
+#         tgt = self.embedding(tgt) * math.sqrt(self.dim_model)
+#         src = self.pos_encoder(src)
+#         tgt = self.pos_encoder(tgt)
+
+#         # we permute to obtain size (sequence length, batch_size, dim_model),
+#         src = src.permute(1, 0, 2)
+#         tgt = tgt.permute(1, 0, 2)
+
+#         # Transformer blocks - Out size = (sequence length, batch_size, num_tokens)
+#         transformer_out = self.transformer(src, tgt)
+#         out = self.out(transformer_out)
+
+#         if self.sigmoid:
+#             out = self.activation(out)
+            
+#         return out
+    
+#     def get_tgt_mask(self, size) -> torch.tensor:
+#         # Generates a squeare matrix where the each row allows one word more to be seen
+#         mask = torch.tril(torch.ones(size, size) == 1) # Lower triangular matrix
+#         mask = mask.float()
+#         mask = mask.masked_fill(mask == 0, float('-inf')) # Convert zeros to -inf
+#         mask = mask.masked_fill(mask == 1, float(0.0)) # Convert ones to 0
+    
+#         return mask
+    
+#     def create_pad_mask(self, matrix: torch.tensor, pad_token: int) -> torch.tensor:
+#         # If matrix = [1,2,3,0,0,0] where pad_token=0, the result mask is
+#         # [False, False, False, True, True, True]
+#         return (matrix == pad_token)
     
     
     
@@ -209,6 +239,13 @@ def train_model(model, data_loader, optimizer, loss_fn, device = "cpu"):
     train_loss = 0
     for batch_idx, (data, target) in enumerate(data_loader):
         optimizer.zero_grad()
+        # if self.model_type == "Transformer":
+        #     src = data.permute(1, 0, 2).double().to(device)[:-1,:,:]
+        #     target = target.permute(1, 0, 2).double().to(device)[1:,:,:]
+        #     sampled_src = src[:1, :, :]
+        #     for i in range(len(target)-1):
+        #         prediction = model(sampled_src, device)
+        # else:
         output = model(data.to(device))
         loss_t = loss_fn(output, target)
         loss_t.backward()

@@ -43,17 +43,13 @@ if __name__ == "__main__":
     dropout = args.dropout
     dim_ff = args.dim_ff
     learning_rate = 5e-3
-    if predictor == None:
-        list_of_vars = ["temp_min", "temp_max", "temp_mean", "station"]
-        list_of_vars_2 = ["temp_min", "temp_max", "temp_mean", "rainfall", "snow", "station"]
-        list_of_vars_3 = ["temp_min", "temp_max", "temp_mean", "hist_temp_min", "hist_temp_max", "hist_temp_mean", "station"]
-        list_of_vars_4 = ["temp_min", "temp_max", "temp_mean", "rainfall", "snow", "hist_temp_min", "hist_temp_max",
-                           "hist_temp_mean", "hist_rainfall", "hist_snow", "station"]
-    else:
-        list_of_vars =  [predictor, "station"]
-        list_of_vars_2 = [predictor, "station"]
-        list_of_vars_3 =  [predictor, "station"]
-        list_of_vars_4 = [predictor, "station"]
+    
+    list_of_vars = ["temp_min", "temp_max", "temp_mean", "station"]
+    list_of_vars_2 = ["temp_min", "temp_max", "temp_mean", "rainfall", "snow", "station"]
+    list_of_vars_3 = ["temp_min", "temp_max", "temp_mean", "hist_temp_min", "hist_temp_max", "hist_temp_mean", "station"]
+    list_of_vars_4 = ["temp_min", "temp_max", "temp_mean", "rainfall", "snow", "hist_temp_min", "hist_temp_max",
+                        "hist_temp_mean", "hist_rainfall", "hist_snow", "station"]
+    
     names_models = {0 : ["temp_min", "temp_min_hist"], 1 : ["temp_max", "temp_max_hist"], 2 : ["temp_mean", "temp_mean_hist"], 
                     3 : ["rainfall", "rainfall_hist"], 4 : ["snow", "snow_hist"]}
     loss_functions = {0 : torch.nn.MSELoss(), 1 : torch.nn.MSELoss(), 2 : torch.nn.MSELoss(),
