@@ -3,7 +3,8 @@ import numpy as np
 import pandas as pd
 import torch
 
-from  utils import utils
+from utils import utils
+from utils import models
 import argparse
 import os
 import datetime
@@ -58,7 +59,7 @@ if __name__ == "__main__":
 
     # iterate over the 5 different models
     for i in range(5):
-        model = utils.LSTM(input_size=len(vars[i]), 
+        model = models.LSTM(input_size=len(vars[i]), 
                            hidden_size=hidden_units,
                            output_size=4,
                            num_layers=1, 
