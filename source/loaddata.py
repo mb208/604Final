@@ -80,12 +80,13 @@ if __name__ == "__main__":
                                                     rainfall=('prcp', lambda x: (x > 0).any()),
                                                     snow=('is_snow', lambda x: (x > 0).any()))
     
-    daily_df.to_csv("data/daily_data.csv")
+    # daily_df.to_csv("data/daily_data.csv")
     daily_df = daily_df.reset_index() 
     daily_df["date"] = pd.to_datetime(daily_df["date"])
     daily_df_with_history = daily_df[daily_df["date"] >= train_start_date]
     daily_df_with_history.set_index(["station", "date"], inplace=True)
-    daily_df_with_history.to_csv("data/daily_data_one_year.csv")
+    filename = "../data/daily_data_{}.csv".format(train_data_window)
+    daily_df_with_history.to_csv(filename)
 
     daily_df["week"] = pd.DatetimeIndex(daily_df['date']).strftime('%U')
     # aa_weather = daily_df[daily_df["station"] == "KARB"]
@@ -101,7 +102,8 @@ if __name__ == "__main__":
                                                                          hist_rainfall=('rainfall', 'mean'),
                                                                          hist_snow=('snow', 'mean'))
     # historical_df = historical_df.reset_index()
-    historical_df.to_csv("../data/historical_data.csv")
+    filename = "../data/historical_data_{}.csv".format(train_data_window)
+    historical_df.to_csv(filename)
     # print(daily_df.join(historical_df, on=['week','station'], how='left'))
     
 
