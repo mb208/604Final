@@ -13,12 +13,12 @@ def filter_data_by_station(data, station):
 
 def load_data(daily, station = None):
     if daily:
-        data = pd.read_csv("data/daily_data_one_year.csv")
+        data = pd.read_csv("../data/daily_data_one_year.csv")
         data["date"] = pd.to_datetime(data["date"])
         data["rainfall"] = (data["rainfall"] == True).astype(int)
         data["snow"] = (data["snow"] == True).astype(int)
     else:
-        data = pd.read_csv("data/hourly_data.csv")
+        data = pd.read_csv("../data/hourly_data.csv")
         data["time"] = pd.to_datetime(data["time"])
     if station:
         data = filter_data_by_station(data, station)
@@ -79,16 +79,16 @@ def pull_data(daily=False, window=7):
     
 def load_data_with_historical(daily, station = None):
     if daily:
-        data = pd.read_csv("data/daily_data_one_year.csv")
+        data = pd.read_csv("../data/daily_data_one_year.csv")
         data["date"] = pd.to_datetime(data["date"])
         data["rainfall"] = (data["rainfall"] == True).astype(int)
         data["snow"] = (data["snow"] == True).astype(int)
         data["week"] = pd.DatetimeIndex(data['date']).strftime('%U').astype(int)
-        historical = pd.read_csv("data/historical_data.csv")
+        historical = pd.read_csv("../data/historical_data.csv")
         historical["week"] = historical["week"].astype(int)
         data = pd.merge(data, historical, on=['week','station'], how='left')
     else:
-        data = pd.read_csv("data/hourly_data.csv")
+        data = pd.read_csv("../data/hourly_data.csv")
         data["time"] = pd.to_datetime(data["time"])
     if station:
         data = filter_data_by_station(data, station)
