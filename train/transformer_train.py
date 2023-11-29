@@ -1,3 +1,5 @@
+import sys; sys.path.insert(0, '..') # add parent folder path where lib folder is
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -15,18 +17,13 @@ parser.add_argument('--window_size', default= 7, type=int,
                     help='Size of window')
 parser.add_argument('--is_daily', default= 1, type=int,
                     help='Daily or hourly data')
-parser.add_argument("--d_model", default=512, type=int,
-                    help="embedding dimension")
 parser.add_argument("--nhead", default=8, type=int,
                     help="Number of attention heads in transformer")
-parser.add_argument("--n_enc", default=6, type=int,
-                    help="Number of encoder layers in transformer")
-parser.add_argument("--n_dec", default=6, type=int,
-                    help="Number of decoder layers in transformer")
-parser.add_argument("--dropout", default=0.1, type=int,
-                    help="Number of decoder layers in transformer")
-parser.add_argument("--dim_ff", default=2048, type=int,
-                    help="dim_feedforward`` in transformer")
+parser.add_argument("--num_layers", default=3, type=int,
+                    help="Number of layers in transformer")
+parser.add_argument("--dropout", default=0, type=int,
+                    help="Level dropout in transformers")
+
 
 device = ("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -37,11 +34,8 @@ if __name__ == "__main__":
     window_size = args.window_size
     daily = args.is_daily
     nhead = args.nhead
-    d_model = args.d_model
-    n_enc = args.n_enc
-    n_dec = args.n_dec
+    num_layers = args.num_layers
     dropout = args.dropout
-    dim_ff = args.dim_ff
     learning_rate = 5e-3
     
     list_of_vars = ["temp_min", "temp_max", "temp_mean", "station"]
@@ -54,11 +48,17 @@ if __name__ == "__main__":
                     3 : ["rainfall", "rainfall_hist"], 4 : ["snow", "snow_hist"]}
     loss_functions = {0 : torch.nn.MSELoss(), 1 : torch.nn.MSELoss(), 2 : torch.nn.MSELoss(),
         3 : models.SpecialCrossEntropyLoss(), 4 : models.SpecialCrossEntropyLoss()}
-    predictors_list = { 0 : [list_of_vars, list_of_vars_3], 1 : [list_of_vars, list_of_vars_3], 2 : [list_of_vars, list_of_vars_3],
-        3 : [list_of_vars_2, list_of_vars_4], 4 : [list_of_vars_2, list_of_vars_4]}
+    predictors_list = { 0 : [list_of_vars, list_of_vars_3], 
+                        1 : [list_of_vars, list_of_vars_3],
+                        2 : [list_of_vars, list_of_vars_3],
+                        3 : [list_of_vars_2, list_of_vars_4],
+                        4 : [list_of_vars_2, list_of_vars_4]}
     test_processes = {0 : models.test_model, 1 : models.test_model, 2 : models.test_model,
         3 : models.test_model_classifier, 4 : models.test_model_classifier}
-    model_path = "../models/lstm/"
+    
+    model_path = "../models/transformer/"
+    if os.path.exists(model_path) == False:
+        os.mkdir(model_path)
 
     # Load data
     print("Loading data...")
@@ -82,13 +82,10 @@ if __name__ == "__main__":
 
         # Create model
         inputsize = x.shape[2]
-        model = models.Transformer(d_model=d_model, 
-                                   nhead=nhead, 
-                                   num_encoder_layers=n_enc,
-                                   num_decoder_layers=n_dec, 
-                                   dropout=dropout,
-                                   dim_feedforward=dim_ff,
-                                   output_size=4)
+        model = models.Transformer(feature_size=inputsize, 
+                                   num_layers=3,
+                                   nhead=inputsize,
+                                   dropout=0)
         loss_function = loss_functions[i]
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -111,13 +108,11 @@ if __name__ == "__main__":
 
         # Create model
         inputsize = x.shape[2]
-        model_hist = models.Transformer(d_model=d_model, 
-                                   nhead=nhead, 
-                                   num_encoder_layers=n_enc,
-                                   num_decoder_layers=n_dec, 
-                                   dropout=dropout,
-                                   dim_feedforward=dim_ff,
-                                   output_size=4)
+        model_hist = models.Transformer(feature_size=inputsize, 
+                                   num_layers=3,
+                                   nhead=8,
+                                   dropout=0)
+        
         loss_function = loss_functions[i]
         optimizer = torch.optim.Adam(model_hist.parameters(), lr=learning_rate)
 

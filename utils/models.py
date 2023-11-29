@@ -91,28 +91,32 @@ class PositionalEncoding(torch.nn.Module):
 
 class Transformer(torch.nn.Module):
     # d_model : number of features
-    def __init__(self,feature_size=7,num_layers=3,dropout=0):
+    def __init__(self,feature_size=7,num_layers=3,nhead=8, dropout=0):
         super(Transformer, self).__init__()
         self.model_type = 'Transformer'
-        self.encoder_layer = torch.nn.TransformerEncoderLayer(d_model=feature_size, nhead=7, dropout=dropout)
+        self.d_model = feature_size
+        self.nhead = nhead
+        self.dropout = dropout
+        self.num_layers = num_layers
+        self.encoder_layer = torch.nn.TransformerEncoderLayer(d_model=feature_size, nhead=nhead, dropout=dropout)
         self.transformer_encoder = torch.nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)        
         self.decoder = torch.nn.Linear(feature_size,1)
         self.init_weights()
 
     def init_weights(self):
         initrange = 0.1    
-        self.decoder.bias.data.zero_()
-        self.decoder.weight.data.uniform_(-initrange, initrange)
+        self.decoder.bias.data.zero_().float()
+        self.decoder.weight.data.uniform_(-initrange, initrange).float()
 
     def _generate_square_subsequent_mask(self, sz):
-        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
+        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1).float()
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
         return mask
 
     def forward(self, src, device):
         
-        mask = self._generate_square_subsequent_mask(len(src)).to(device)
-        output = self.transformer_encoder(src,mask)
+        mask = self._generate_square_subsequent_mask(len(src)).float().to(device)
+        output = self.transformer_encoder(src,mask).float()
         output = self.decoder(output)
         return output
     
@@ -237,20 +241,23 @@ def train_test_split(data, date, daily=True):
 def train_model(model, data_loader, optimizer, loss_fn, device = "cpu"):
     model.train()
     train_loss = 0
-    for batch_idx, (data, target) in enumerate(data_loader):
-        optimizer.zero_grad()
-        # if self.model_type == "Transformer":
-        #     src = data.permute(1, 0, 2).double().to(device)[:-1,:,:]
-        #     target = target.permute(1, 0, 2).double().to(device)[1:,:,:]
-        #     sampled_src = src[:1, :, :]
-        #     for i in range(len(target)-1):
-        #         prediction = model(sampled_src, device)
-        # else:
-        output = model(data.to(device))
-        loss_t = loss_fn(output, target)
-        loss_t.backward()
-        optimizer.step()
-        train_loss += loss_t.item()
+    if model.model_type == "Transformer":
+        for batch_idx, (data, target) in enumerate(data_loader):
+            optimizer.zero_grad()
+            src = data.permute(1,0,2).double().to(device)[:-1,:,:] # torch.Size([6, 32, 4])
+            target = target.unsqueeze(0).permute(1,0,2).double().to(device)[1:,:,:] # src shifted by 1.
+            prediction = model(src, device) # torch.Size([7, 32, 1])
+            loss = loss_fn(prediction, target[:,:,0].unsqueeze(-1))
+            loss.backward()
+            optimizer.step()
+    else:
+        for batch_idx, (data, target) in enumerate(data_loader):
+            output = model(data.to(device))
+            loss_t = loss_fn(output, target)
+            loss_t.backward()
+            optimizer.step()
+            train_loss += loss_t.item()
+
     return train_loss / len(data_loader)
 
 # MUST FIX THIS for classifier problems
@@ -259,10 +266,37 @@ def test_model(model, data_loader, loss_fn):
     model.eval()
     test_loss = 0
     with torch.no_grad():
-        for batch_idx, (data, target) in enumerate(data_loader):
-            output = model(data)
-            loss_t = loss_fn(output, target)
-            test_loss += np.sqrt(loss_t.item())
+        if model.model_type == "Transformer":
+            for batch_idx, (data, target) in enumerate(data_loader):
+                src = data.permute(1,0,2).double().to(device)[:-1,:,:]
+                target = target.unsqueeze(0).permute(1,0,2).double().to(device) # t48 - t59
+
+                next_input = src
+                output = []
+
+                for i in range(target.shape[2] - 1):
+                    
+                    prediction = model(next_input, device) # 47,1,1: t2' - t48'
+
+                    if output == []:
+                        output = prediction # 47,1,1: t2' - t48'
+                    else:
+                        output = torch.cat((output, prediction[-1,:,:].unsqueeze(0))) # 47+,1,1: t2' - t48', t49', t50'
+
+                    pos_encoding_old_vals = src[i+1:, :, 1:] # 46, 1, 6, pop positional encoding first value: t2 -- t47
+                    pos_encoding_new_val = target[i + 1, :, 1:].unsqueeze(1) # 1, 1, 6, append positional encoding of last predicted value: t48
+                    pos_encodings = torch.cat((pos_encoding_old_vals, pos_encoding_new_val)) # 47, 1, 6 positional encodings matched with prediction: t2 -- t48
+                    
+                    next_input_model = torch.cat((src[i+1:, :, 0].unsqueeze(-1), prediction[-1,:,:].unsqueeze(0))) #t2 -- t47, t48'
+                    next_input_model = torch.cat((next_input_model, pos_encodings), dim = 2) # 47, 1, 7 input for next round
+
+                true = torch.cat((src[1:,:,0],target[:-1,:,0]))
+                loss = loss_fn(true, output[:,:,0])
+        else:       
+            for batch_idx, (data, target) in enumerate(data_loader):
+                output = model(data)
+                loss_t = loss_fn(output, target)
+                test_loss += np.sqrt(loss_t.item())
     return test_loss / len(data_loader)
 
 def test_model_classifier(model, data_loader, loss_fn):
