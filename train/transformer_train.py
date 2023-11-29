@@ -21,7 +21,13 @@ parser.add_argument("--nhead", default=8, type=int,
                     help="Number of attention heads in transformer")
 parser.add_argument("--num_layers", default=3, type=int,
                     help="Number of layers in transformer")
-parser.add_argument("--dropout", default=0, type=int,
+parser.add_argument("--d_model", default=512, type=int,
+                    help="Dimension of embedding in transformers")
+parser.add_argument("--d_hid", default=2048, type=int,
+                    help="Dimension of hidden layers in transformers")
+parser.add_argument("--output_size", default=4, type=int,
+                    help="Days head to predict")
+parser.add_argument("--dropout", default=0.1, type=float,
                     help="Level dropout in transformers")
 
 
@@ -35,6 +41,9 @@ if __name__ == "__main__":
     daily = args.is_daily
     nhead = args.nhead
     num_layers = args.num_layers
+    d_model = args.d_model
+    d_hid = args.d_hid
+    output_size = args.output_size
     dropout = args.dropout
     learning_rate = 5e-3
     
@@ -56,7 +65,7 @@ if __name__ == "__main__":
     test_processes = {0 : models.test_model, 1 : models.test_model, 2 : models.test_model,
         3 : models.test_model_classifier, 4 : models.test_model_classifier}
     
-    model_path = "../models/transformer/"
+    model_path = "./models/transformer/"
     if os.path.exists(model_path) == False:
         os.mkdir(model_path)
 
@@ -83,9 +92,11 @@ if __name__ == "__main__":
         # Create model
         inputsize = x.shape[2]
         model = models.Transformer(feature_size=inputsize, 
-                                   num_layers=3,
-                                   nhead=inputsize,
-                                   dropout=0)
+                                   d_model=d_model, d_hid=d_hid, 
+                                   num_layers=num_layers,
+                                   nhead=nhead, 
+                                   output_size=output_size,
+                                   dropout=dropout)
         loss_function = loss_functions[i]
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -108,10 +119,12 @@ if __name__ == "__main__":
 
         # Create model
         inputsize = x.shape[2]
-        model_hist = models.Transformer(feature_size=inputsize, 
-                                   num_layers=3,
-                                   nhead=8,
-                                   dropout=0)
+        model = models.Transformer(feature_size=inputsize, 
+                                   d_model=d_model, d_hid=d_hid, 
+                                   num_layers=num_layers,
+                                   nhead=nhead, 
+                                   output_size=output_size,
+                                   dropout=dropout)
         
         loss_function = loss_functions[i]
         optimizer = torch.optim.Adam(model_hist.parameters(), lr=learning_rate)
