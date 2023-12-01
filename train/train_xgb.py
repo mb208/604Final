@@ -20,7 +20,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--testdate', default= "2023/11/16", type=str,
                     help='Date to split train/test data')
 
-device = ("cuda" if torch.cuda.is_available() else "cpu")
+# device = ("cuda" if torch.cuda.is_available() else "cpu")
 
 if __name__ == "__main__":
     # Variable setting
@@ -36,14 +36,18 @@ if __name__ == "__main__":
     model_lists = [xgb.XGBRegressor(n_estimators=1000, learning_rate=learning_rate, n_jobs=4,random_state=0)]*3 + \
     [xgb.XGBClassifier(n_estimators=1000, learning_rate=learning_rate, n_jobs=4,random_state=0)]*2
     
+    pred_labels = ["XGBRegressor"]*3 + ["XGBClassifier"]*2
     
-    loss_functions = {0 : lambda x: np.sqrt(mean_squared_error(x)), 
-                      1 : lambda x: np.sqrt(mean_squared_error(x)), 
-                      2 : lambda x: np.sqrt(mean_squared_error(x)),
+    loss_functions = {0 : lambda y,yhat: np.sqrt(mean_squared_error(y,yhat)), 
+                      1 : lambda y,yhat: np.sqrt(mean_squared_error(y,yhat)), 
+                      2 : lambda y,yhat: np.sqrt(mean_squared_error(y,yhat)),
                       3 : accuracy_score, 
                       4 : accuracy_score}
     
-    model_path = "../models/xgb/"
+    model_path = "./models/xgb/"
+    
+    if os.path.exists(model_path) == False:
+        os.mkdir(model_path)
 
     # Load data
     print("Loading data...")
@@ -61,8 +65,6 @@ if __name__ == "__main__":
     
     train_data_pd = pd.get_dummies(train_data_pd, columns=['station'])
     train_data_pd['station'] = train_stations
-
-    # test_data_pd  = pd.get_dummies(test_data_pd, columns=['station'])
     
     train_data_pd.dropna(inplace=True)
     test_data_pd.dropna(inplace=True)
@@ -89,12 +91,16 @@ if __name__ == "__main__":
                    num_threads=6)
         
         print("Training model {}...".format(list_of_vars[i]))
-        fcst.fit(train_data_pd, time_col = 'date', target_col=list_of_vars[i], static_cols=static_feats)
+        fcst.fit(train_data_pd,
+                 id_col='station',
+                 time_col='date',
+                 target_col=list_of_vars[i], 
+                 static_features=static_feats)
         
         model_pkl_file = model_path + list_of_vars[i] + ".pkl"
         print("Saving model {}...".format(model_pkl_file))
         with open(model_pkl_file, 'wb') as file:  
-            pickle.dump(fcst, model_pkl_file)
+            pickle.dump(fcst, file)
             
         
         results = test_data_pd.merge(fcst.predict(h = 4, X_df = test_data_pd),
@@ -102,6 +108,6 @@ if __name__ == "__main__":
         
         print("TEST LOSS for model {} : {}".format(list_of_vars[i], 
                                                    loss_functions[i](results[list_of_vars[i]], 
-                                                                     results["XGBClassifier"])))
+                                                                     results[pred_labels[i]])))
 
     print("Done training and testing models")
