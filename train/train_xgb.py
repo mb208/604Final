@@ -12,7 +12,7 @@ from prophet import Prophet
 
 import mlforecast
 from sklearn.metrics import mean_squared_error, accuracy_score, f1_score, roc_auc_score,  precision_score, recall_score
-from window_ops.rolling import rolling_mean, rolling_max, rolling_min
+from window_ops.rolling import rolling_mean
 import pickle
 
 
