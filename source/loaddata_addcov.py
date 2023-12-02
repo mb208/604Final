@@ -67,8 +67,6 @@ if __name__ == "__main__":
     hourly_df = Hourly(loc = station_ids, start=start_date, end=end_date).fetch()
     print("Done getting data from Meteostat")
 
-    # hourly_df.to_csv("data/hourly_data_2.csv")
-
     data = hourly_df.copy()
     data = data.reset_index()
     data["date"] = data.time.dt.date
@@ -80,7 +78,6 @@ if __name__ == "__main__":
                                                     rainfall=('prcp', lambda x: (x > 0).any()),
                                                     snow=('is_snow', lambda x: (x > 0).any()))
     
-    # daily_df.to_csv("data/daily_data.csv")
     daily_df = daily_df.reset_index() 
     daily_df["date"] = pd.to_datetime(daily_df["date"])
     daily_df_with_history = daily_df[daily_df["date"] >= train_start_date]
@@ -89,7 +86,6 @@ if __name__ == "__main__":
     daily_df_with_history.to_csv(filename)
 
     daily_df["week"] = pd.DatetimeIndex(daily_df['date']).strftime('%U')
-    # aa_weather = daily_df[daily_df["station"] == "KARB"]
     daily_df["month"] = pd.DatetimeIndex(daily_df['date']).month
     daily_df["day"] = pd.DatetimeIndex(daily_df['date']).day
     daily_df["week"] = pd.DatetimeIndex(daily_df['date']).strftime('%U')
@@ -101,10 +97,8 @@ if __name__ == "__main__":
                                                                          hist_temp_min=('temp_min', 'mean'),
                                                                          hist_rainfall=('rainfall', 'mean'),
                                                                          hist_snow=('snow', 'mean'))
-    # historical_df = historical_df.reset_index()
     filename = "../data/historical_data_{}.csv".format(train_data_window)
     historical_df.to_csv(filename)
-    # print(daily_df.join(historical_df, on=['week','station'], how='left'))
     
 
 
