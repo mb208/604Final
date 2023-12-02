@@ -51,7 +51,8 @@ if __name__ == "__main__":
     if end_date == None:
         end_date = datetime.today()
     else:
-        end_date = datetime(end_date)
+        year, month, day = end_date.split("/")
+        end_date = datetime(year=int(year), month=int(month), day=int(day))
     start_date = end_date - relativedelta(years=time_window)
     train_start_date = end_date - relativedelta(years=train_data_window)
 
@@ -85,7 +86,8 @@ if __name__ == "__main__":
     daily_df["date"] = pd.to_datetime(daily_df["date"])
     daily_df_with_history = daily_df[daily_df["date"] >= train_start_date]
     daily_df_with_history.set_index(["station", "date"], inplace=True)
-    filename = "../data/daily_data_{}.csv".format(train_data_window)
+    # filename = "../data/daily_data_{}.csv".format(train_data_window)
+    filename = "../data/daily_data.csv"
     daily_df_with_history.to_csv(filename)
 
     daily_df["week"] = pd.DatetimeIndex(daily_df['date']).strftime('%U')
@@ -102,7 +104,8 @@ if __name__ == "__main__":
                                                                          hist_rainfall=('rainfall', 'mean'),
                                                                          hist_snow=('snow', 'mean'))
     # historical_df = historical_df.reset_index()
-    filename = "../data/historical_data_{}.csv".format(train_data_window)
+    # filename = "../data/historical_data_{}.csv".format(train_data_window)
+    filename = "../data/historical_data.csv"
     historical_df.to_csv(filename)
     # print(daily_df.join(historical_df, on=['week','station'], how='left'))
     
