@@ -140,7 +140,7 @@ def train_model(model, data_loader, optimizer, loss_fn, device = "cpu"):
 
 # MUST FIX THIS for classifier problems
 
-def test_model(model, data_loader, loss_fn, device: None):
+def test_model(model, data_loader, loss_fn, device= None):
     model.eval()
     test_loss = 0
     with torch.no_grad():
