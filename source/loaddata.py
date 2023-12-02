@@ -84,10 +84,17 @@ if __name__ == "__main__":
     # daily_df.to_csv("data/daily_data.csv")
     daily_df = daily_df.reset_index() 
     daily_df["date"] = pd.to_datetime(daily_df["date"])
-    daily_df_with_history = daily_df[daily_df["date"] >= train_start_date]
-    daily_df_with_history.set_index(["station", "date"], inplace=True)
+    # daily_df_with_history = daily_df
+    daily_df.set_index(["station", "date"], inplace=True)
     # filename = "../data/daily_data_{}.csv".format(train_data_window)
     filename = "../data/daily_data.csv"
+    daily_df.to_csv(filename)
+
+    daily_df = daily_df.reset_index() 
+    daily_df["date"] = pd.to_datetime(daily_df["date"])
+    daily_df_with_history = daily_df[daily_df["date"] >= train_start_date]
+    daily_df_with_history.set_index(["station", "date"], inplace=True)
+    filename = "../data/daily_data_one_year.csv"
     daily_df_with_history.to_csv(filename)
 
     daily_df["week"] = pd.DatetimeIndex(daily_df['date']).strftime('%U')
