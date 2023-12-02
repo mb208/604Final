@@ -9,10 +9,11 @@ import os
 from sklearn import preprocessing
 
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--station', default=None, type=str,
                     help='Station to use')
-parser.add_argument('--testdate', default= "2023/9/19", type=str,
+parser.add_argument('--testdate', default= "2023/11/24", type=str,
                     help='Date to split train/test data')
 parser.add_argument('--window_size', default= 7, type=int,
                     help='Size of window')
@@ -58,7 +59,7 @@ if __name__ == "__main__":
 
     # Load data
     print("Loading data...")
-    data = utils.load_data(daily, station, trainwindow=1)
+    data = utils.load_data(daily, station, cov=True)
     print(data.head())
     train_data_pd, test_data_pd = models.train_test_split(data, test_date, daily)
 
