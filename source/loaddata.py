@@ -28,7 +28,7 @@ lat_lons = {
     "PHNL" : (21.3187,-157.9225), # Honolulu International Airport
     "KIAH" : (29.9844,-95.3414), # George Bush Intercontinental Airport
     "KMIA" : (25.7933,-80.2906), # Miami International Airport
-    "KMIC" : (45.0628,-93.3533), # Minneapolis Crystal Airport
+    "KMSP" : (44.8831,-93.2289), # Minneapolis Saint Paul International Airport
     "KOKC" : (35.3931,-97.6008), # Will Rogers World Airport
     "KBNA" : (36.1244,-86.6782), # Nashville International Airport
     "KJFK" : (40.6397,-73.7789), # John F. Kennedy International Airport
@@ -39,7 +39,7 @@ lat_lons = {
     "KSAN" : (32.7336,-117.1897), # San Diego International Airport
     "KSFO" : (37.6189,-122.3750), # San Francisco International Airport
     "KSEA" : (47.4489,-122.3094), # Seattle Tacoma International Airport
-    "KDCA" : (38.8522,-77.0378), # Ronald Reagan Washington National Airport
+    "KDCA" : (38.8522,-77.0378) # Ronald Reagan Washington National Airport
 }
 
 if __name__ == "__main__":
@@ -51,7 +51,8 @@ if __name__ == "__main__":
     if end_date == None:
         end_date = datetime.today()
     else:
-        end_date = datetime(end_date)
+        year, month, day = end_date.split("/")
+        end_date = datetime(year=int(year), month=int(month), day=int(day))
     start_date = end_date - relativedelta(years=time_window)
     train_start_date = end_date - relativedelta(years=train_data_window)
 
@@ -80,12 +81,21 @@ if __name__ == "__main__":
                                                     rainfall=('prcp', lambda x: (x > 0).any()),
                                                     snow=('is_snow', lambda x: (x > 0).any()))
     
-    daily_df.to_csv("data/daily_data.csv")
+    # daily_df.to_csv("data/daily_data.csv")
+    daily_df = daily_df.reset_index() 
+    daily_df["date"] = pd.to_datetime(daily_df["date"])
+    # daily_df_with_history = daily_df
+    daily_df.set_index(["station", "date"], inplace=True)
+    # filename = "../data/daily_data_{}.csv".format(train_data_window)
+    filename = "../data/daily_data.csv"
+    daily_df.to_csv(filename)
+
     daily_df = daily_df.reset_index() 
     daily_df["date"] = pd.to_datetime(daily_df["date"])
     daily_df_with_history = daily_df[daily_df["date"] >= train_start_date]
     daily_df_with_history.set_index(["station", "date"], inplace=True)
-    daily_df_with_history.to_csv("data/daily_data_one_year.csv")
+    filename = "../data/daily_data_one_year.csv"
+    daily_df_with_history.to_csv(filename)
 
     daily_df["week"] = pd.DatetimeIndex(daily_df['date']).strftime('%U')
     # aa_weather = daily_df[daily_df["station"] == "KARB"]
@@ -101,7 +111,9 @@ if __name__ == "__main__":
                                                                          hist_rainfall=('rainfall', 'mean'),
                                                                          hist_snow=('snow', 'mean'))
     # historical_df = historical_df.reset_index()
-    historical_df.to_csv("../data/historical_data.csv")
+    # filename = "../data/historical_data_{}.csv".format(train_data_window)
+    filename = "../data/historical_data.csv"
+    historical_df.to_csv(filename)
     # print(daily_df.join(historical_df, on=['week','station'], how='left'))
     
 
