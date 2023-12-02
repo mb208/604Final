@@ -1,4 +1,4 @@
-# import sys; sys.path.insert(0, '..') # add parent folder path where lib folder is
+import sys; sys.path.insert(0, '..') # add parent folder path where lib folder is
 import numpy as np
 import pandas as pd
 import torch
