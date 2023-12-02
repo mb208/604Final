@@ -6,15 +6,23 @@ from sklearn import preprocessing
 from datetime import datetime, date, timedelta
 import matplotlib.pyplot as plt
 from meteostat import Point, Daily, Hourly, Stations
+from dateutil.relativedelta import relativedelta 
 
 
 def filter_data_by_station(data, station):
     return data[data['station'] == station]
 
-def load_data(daily, station = None, trainwindow = None):
+def load_data(daily, station = None, trainwindow = None, cov = False):
     if daily:
-        data = pd.read_csv("./data/daily_data_one_year.csv")
+        if cov == False:
+            data = pd.read_csv("./data/daily_data.csv")
+        else:
+            data = pd.read_csv("./data/daily_data_addcov.csv")
+            data["station"] = data["station"].astype(str)
         data["date"] = pd.to_datetime(data["date"])
+        if trainwindow != None:
+            start_date = datetime.today() - relativedelta(years=trainwindow)
+            data = data[data["date"] >= start_date]
         data["rainfall"] = (data["rainfall"] == True).astype(int)
         data["snow"] = (data["snow"] == True).astype(int)
     else:
@@ -80,9 +88,9 @@ def pull_data(daily=False, window=7):
 def load_data_with_historical(daily, station = None, trainwindow = None):
     if daily:
         if trainwindow == None:
-            data = pd.read_csv("../data/daily_data_one_year.csv")
+            data = pd.read_csv("./data/daily_data_one_year.csv")
         else:
-            data = pd.read_csv("../data/daily_data_{}.csv".format(trainwindow))
+            data = pd.read_csv("./data/daily_data_{}.csv".format(trainwindow))
         data["date"] = pd.to_datetime(data["date"])
         data["rainfall"] = (data["rainfall"] == True).astype(int)
         data["snow"] = (data["snow"] == True).astype(int)
@@ -97,6 +105,7 @@ def load_data_with_historical(daily, station = None, trainwindow = None):
         data = filter_data_by_station(data, station)
     else:
         le = preprocessing.LabelEncoder()
+        print(data["station"].head())
         le.fit(data["station"])
         data["station"] = le.transform(data["station"])
     return data
