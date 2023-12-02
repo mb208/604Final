@@ -51,7 +51,8 @@ if __name__ == "__main__":
     if end_date == None:
         end_date = datetime.today()
     else:
-        end_date = datetime(end_date)
+        year, month, day = end_date.split("/")
+        end_date = datetime(year=int(year), month=int(month), day=int(day))
     start_date = end_date - relativedelta(years=time_window)
     train_start_date = end_date - relativedelta(years=train_data_window)
 
@@ -67,38 +68,60 @@ if __name__ == "__main__":
     hourly_df = Hourly(loc = station_ids, start=start_date, end=end_date).fetch()
     print("Done getting data from Meteostat")
 
+
     data = hourly_df.copy()
     data = data.reset_index()
     data["date"] = data.time.dt.date
     data["is_snow"] = data["coco"].isin([14, 15, 16, 21, 22])
+    print(data.head())
+    print("THESE ARE THE COLUMNS")
+    print(data.columns)
+    print("THESE ARE THE NULL VALUES")
+    print(data.isnull().sum()/data.shape[0])
+
+    # snow, wpgt, tsun
 
     daily_df = data.groupby(['station','date']).agg(temp_max=('temp', 'max'),
                                                     temp_mean=('temp', 'mean'),
                                                     temp_min=('temp', 'min'),
                                                     rainfall=('prcp', lambda x: (x > 0).any()),
-                                                    snow=('is_snow', lambda x: (x > 0).any()))
+                                                    snow=('is_snow', lambda x: (x > 0).any()),
+                                                    # other features,
+                                                    dwpt_mean=('dwpt', 'mean'),
+                                                    dwpt_max=('dwpt', 'max'),
+                                                    dwpt_min=('dwpt', 'min'),
+                                                    rhum_mean=('rhum', 'mean'),
+                                                    rhum_max=('rhum', 'max'),
+                                                    rhum_min=('rhum', 'min'),
+                                                    pres_mean=('pres', 'mean'),
+                                                    pres_max=('pres', 'max'),
+                                                    pres_min=('pres', 'min'))
     
-    daily_df = daily_df.reset_index() 
-    daily_df["date"] = pd.to_datetime(daily_df["date"])
-    daily_df_with_history = daily_df[daily_df["date"] >= train_start_date]
-    daily_df_with_history.set_index(["station", "date"], inplace=True)
-    filename = "../data/daily_data_{}.csv".format(train_data_window)
-    daily_df_with_history.to_csv(filename)
 
-    daily_df["week"] = pd.DatetimeIndex(daily_df['date']).strftime('%U')
-    daily_df["month"] = pd.DatetimeIndex(daily_df['date']).month
-    daily_df["day"] = pd.DatetimeIndex(daily_df['date']).day
-    daily_df["week"] = pd.DatetimeIndex(daily_df['date']).strftime('%U')
-    daily_df["year"] = pd.DatetimeIndex(daily_df['date']).year
+    # daily_df = daily_df.reset_index() 
+    # daily_df["date"] = pd.to_datetime(daily_df["date"])
+    # daily_df_with_history = daily_df[daily_df["date"] >= train_start_date]
+    # daily_df_with_history.set_index(["station", "date"], inplace=True)
 
-    historical_df = daily_df[daily_df["date"] < train_start_date]
-    historical_df = historical_df.groupby(['week','station']).agg(hist_temp_max=('temp_max', 'mean'),
-                                                                         hist_temp_mean=('temp_mean', 'mean'),
-                                                                         hist_temp_min=('temp_min', 'mean'),
-                                                                         hist_rainfall=('rainfall', 'mean'),
-                                                                         hist_snow=('snow', 'mean'))
-    filename = "../data/historical_data_{}.csv".format(train_data_window)
-    historical_df.to_csv(filename)
+    # filename = "../data/daily_data.csv"
+    # daily_df_with_history.to_csv(filename)
+
+    # daily_df["week"] = pd.DatetimeIndex(daily_df['date']).strftime('%U')
+
+    # daily_df["month"] = pd.DatetimeIndex(daily_df['date']).month
+    # daily_df["day"] = pd.DatetimeIndex(daily_df['date']).day
+    # daily_df["week"] = pd.DatetimeIndex(daily_df['date']).strftime('%U')
+    # daily_df["year"] = pd.DatetimeIndex(daily_df['date']).year
+
+    # historical_df = daily_df[daily_df["date"] < train_start_date]
+    # historical_df = historical_df.groupby(['week','station']).agg(hist_temp_max=('temp_max', 'mean'),
+    #                                                                      hist_temp_mean=('temp_mean', 'mean'),
+    #                                                                      hist_temp_min=('temp_min', 'mean'),
+    #                                                                      hist_rainfall=('rainfall', 'mean'),
+    #                                                                      hist_snow=('snow', 'mean'))
+   
+    # filename = "../data/historical_data.csv"
+    # historical_df.to_csv(filename)
     
 
 
