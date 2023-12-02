@@ -13,7 +13,7 @@ def filter_data_by_station(data, station):
 
 def load_data(daily, station = None):
     if daily:
-        data = pd.read_csv("../data/daily_data_one_year.csv")
+        data = pd.read_csv("./data/daily_data_one_year.csv")
         data["date"] = pd.to_datetime(data["date"])
         data["rainfall"] = (data["rainfall"] == True).astype(int)
         data["snow"] = (data["snow"] == True).astype(int)
