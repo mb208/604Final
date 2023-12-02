@@ -73,13 +73,8 @@ if __name__ == "__main__":
     data = data.reset_index()
     data["date"] = data.time.dt.date
     data["is_snow"] = data["coco"].isin([14, 15, 16, 21, 22])
-    print(data.head())
-    print("THESE ARE THE COLUMNS")
-    print(data.columns)
-    print("THESE ARE THE NULL VALUES")
-    print(data.isnull().sum()/data.shape[0])
 
-    # snow, wpgt, tsun
+    # snow, wpgt, tsun are missing value
 
     daily_df = data.groupby(['station','date']).agg(temp_max=('temp', 'max'),
                                                     temp_mean=('temp', 'mean'),
@@ -96,32 +91,38 @@ if __name__ == "__main__":
                                                     pres_mean=('pres', 'mean'),
                                                     pres_max=('pres', 'max'),
                                                     pres_min=('pres', 'min'))
-    
+    daily_df = daily_df.reset_index() 
+    daily_df["date"] = pd.to_datetime(daily_df["date"])
+    # daily_df_with_history = daily_df
+    daily_df.set_index(["station", "date"], inplace=True)
+    # filename = "../data/daily_data_{}.csv".format(train_data_window)
+    filename = "../data/daily_data_addcov.csv"
+    daily_df.to_csv(filename)
 
-    # daily_df = daily_df.reset_index() 
-    # daily_df["date"] = pd.to_datetime(daily_df["date"])
-    # daily_df_with_history = daily_df[daily_df["date"] >= train_start_date]
-    # daily_df_with_history.set_index(["station", "date"], inplace=True)
+    daily_df = daily_df.reset_index() 
+    daily_df["date"] = pd.to_datetime(daily_df["date"])
+    daily_df_with_history = daily_df[daily_df["date"] >= train_start_date]
+    daily_df_with_history.set_index(["station", "date"], inplace=True)
+    filename = "../data/daily_data_one_year_addcov.csv"
+    daily_df_with_history.to_csv(filename)
 
-    # filename = "../data/daily_data.csv"
-    # daily_df_with_history.to_csv(filename)
+    daily_df["week"] = pd.DatetimeIndex(daily_df['date']).strftime('%U')
+    # aa_weather = daily_df[daily_df["station"] == "KARB"]
+    daily_df["month"] = pd.DatetimeIndex(daily_df['date']).month
+    daily_df["day"] = pd.DatetimeIndex(daily_df['date']).day
+    daily_df["week"] = pd.DatetimeIndex(daily_df['date']).strftime('%U')
+    daily_df["year"] = pd.DatetimeIndex(daily_df['date']).year
 
-    # daily_df["week"] = pd.DatetimeIndex(daily_df['date']).strftime('%U')
-
-    # daily_df["month"] = pd.DatetimeIndex(daily_df['date']).month
-    # daily_df["day"] = pd.DatetimeIndex(daily_df['date']).day
-    # daily_df["week"] = pd.DatetimeIndex(daily_df['date']).strftime('%U')
-    # daily_df["year"] = pd.DatetimeIndex(daily_df['date']).year
-
-    # historical_df = daily_df[daily_df["date"] < train_start_date]
-    # historical_df = historical_df.groupby(['week','station']).agg(hist_temp_max=('temp_max', 'mean'),
-    #                                                                      hist_temp_mean=('temp_mean', 'mean'),
-    #                                                                      hist_temp_min=('temp_min', 'mean'),
-    #                                                                      hist_rainfall=('rainfall', 'mean'),
-    #                                                                      hist_snow=('snow', 'mean'))
-   
-    # filename = "../data/historical_data.csv"
-    # historical_df.to_csv(filename)
+    historical_df = daily_df[daily_df["date"] < train_start_date]
+    historical_df = historical_df.groupby(['week','station']).agg(hist_temp_max=('temp_max', 'mean'),
+                                                                         hist_temp_mean=('temp_mean', 'mean'),
+                                                                         hist_temp_min=('temp_min', 'mean'),
+                                                                         hist_rainfall=('rainfall', 'mean'),
+                                                                         hist_snow=('snow', 'mean'))
+    # historical_df = historical_df.reset_index()
+    # filename = "../data/historical_data_{}.csv".format(train_data_window)
+    filename = "../data/historical_data.csv"
+    historical_df.to_csv(filename)
     
 
 
