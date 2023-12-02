@@ -41,8 +41,11 @@ __CITIES = (
     "KARB KJFK KPHX KPWM KPDX KSLC KSAN KSFO KSEA KDCA"
 ).split(" ")
 
-def pull_data(daily=False, window=7):
-    t = date.today()
+def pull_data(window=7,test_date=None):
+    if test_date:
+        t = datetime.strptime(test_date, '%m/%d/%Y')
+    else:
+        t = date.today()
     current_date = datetime(t.year, t.month, t.day)
     start = current_date - timedelta(days=window)
     stations = Stations()
@@ -58,31 +61,27 @@ def pull_data(daily=False, window=7):
     data = Hourly(loc = meteo_ids, start=start, end=current_date).fetch().reset_index()
     data["date"] = data.time.dt.date
     data["snow"] = data["coco"].isin([14, 15, 16, 21, 22])
-    data = data.assign(snow = lambda x: ((x.coco >= 14 ) & (x.coco <=16))) # include 19 and 20
-    
-    if daily:
-        data = (data
-                .groupby(['station','date'])
-                .agg(temp_max=('temp', 'max'),
-                     temp_mean=('temp', 'mean'),
-                     temp_min=('temp', 'min'),
-                     rainfall=('prcp', lambda x: (x > 0).any()),
-                     snow=('snow', lambda x: x.any()))
-                ).reset_index()
-        data["date"] = pd.to_datetime(data["date"])
-        data["rainfall"] = (data["rainfall"] == True).astype(int)
-        data["snow"] = (data["snow"] == True).astype(int)
-        data = data.merge(cities, how="left", on = "station")
-    else:
-        data["time"] = pd.to_datetime(data["time"])
-        data = data.merge(cities, how="left", on = "station")
-        
+    data = data.groupby(['station','date']).agg(temp_max=('temp', 'max'),
+                                                temp_mean=('temp', 'mean'),
+                                                temp_min=('temp', 'min'),
+                                                rainfall=('prcp', lambda x: (x > 0).any()),
+                                                snow=('snow', lambda x: (x > 0).any()),
+                                                # other features,
+                                                dwpt_mean=('dwpt', 'mean'),
+                                                dwpt_max=('dwpt', 'max'),
+                                                dwpt_min=('dwpt', 'min'),
+                                                rhum_mean=('rhum', 'mean'),
+                                                rhum_max=('rhum', 'max'),
+                                                rhum_min=('rhum', 'min'),
+                                                pres_mean=('pres', 'mean'),
+                                                pres_max=('pres', 'max'),
+                                                pres_min=('pres', 'min'))
     # Return torch dataset
 
     # le = preprocessing.LabelEncoder()
     # le.fit(data["station"])
     # data["station"] = le.transform(data["station"])
-    return data
+    return data.reset_index()
     
     
 def load_data_with_historical(daily, station = None, trainwindow = None):
