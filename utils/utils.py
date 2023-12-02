@@ -11,7 +11,7 @@ from meteostat import Point, Daily, Hourly, Stations
 def filter_data_by_station(data, station):
     return data[data['station'] == station]
 
-def load_data(daily, station = None):
+def load_data(daily, station = None, trainwindow = None):
     if daily:
         data = pd.read_csv("./data/daily_data_one_year.csv")
         data["date"] = pd.to_datetime(data["date"])
@@ -77,9 +77,12 @@ def pull_data(daily=False, window=7):
     return data
     
     
-def load_data_with_historical(daily, station = None):
+def load_data_with_historical(daily, station = None, trainwindow = None):
     if daily:
-        data = pd.read_csv("../data/daily_data_one_year.csv")
+        if trainwindow == None:
+            data = pd.read_csv("../data/daily_data_one_year.csv")
+        else:
+            data = pd.read_csv("../data/daily_data_{}.csv".format(trainwindow))
         data["date"] = pd.to_datetime(data["date"])
         data["rainfall"] = (data["rainfall"] == True).astype(int)
         data["snow"] = (data["snow"] == True).astype(int)
