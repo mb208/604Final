@@ -4,16 +4,17 @@ import matplotlib.pyplot as plt
 import torch
 from utils import utils
 from utils import models
+from source import loaddata
 import argparse
 import os
 from sklearn import preprocessing
 import pickle
 
-
+# test_date="2023/11/24"
 parser = argparse.ArgumentParser()
 parser.add_argument('--station', default=None, type=str,
                     help='Station to use')
-parser.add_argument('--testdate', default= "2023/11/24", type=str,
+parser.add_argument('--testdate', default= None, type=str,
                     help='Date to split train/test data')
 parser.add_argument('--window_size', default= 7, type=int,
                     help='Size of window')
@@ -58,13 +59,28 @@ if __name__ == "__main__":
     model_params = {0 : [64, 1], 1 : [32, 1] , 2 : [128, 1], 
                     3 : [128, 2], 4 : [128, 2]}
     
-    model_path = "./models/lstm/"
+    
+    
 
     # Load data
+    if test_date == None:
+        print("Downloading current weather data...")
+        loaddata.download_data() # source most recent data from source/loaddata.py
+        
     print("Loading data...")
     data = utils.load_data(daily, station, trainwindow=3)
     print(data.head())
-    train_data_pd, test_data_pd = models.train_test_split(data, test_date, daily)
+    
+    if test_date:
+        model_path = "../models/lstm/"
+        train_data_pd, test_data_pd = models.train_test_split(data, test_date, daily)
+    else:
+        if not os.path.exists("./output"):
+            os.mkdir("./output")
+        model_path = "./output"
+        train_data_pd = data.copy()
+
+    
     sc = preprocessing.StandardScaler()
     # train_data_pd.loc[:, ~train_data_pd.columns.isin(["station", "date", "rainfall", "snow"])] = sc.fit_transform(train_data_pd.loc[:, ~train_data_pd.columns.isin(["station", "date", "rainfall", "snow"])])
 
@@ -73,7 +89,7 @@ if __name__ == "__main__":
     # test_data_pd.loc[:, ~test_data_pd.columns.isin(["station", "date", "rainfall", "snow"])] = sc.transform(test_data_pd.loc[:, ~test_data_pd.columns.isin(["station", "date", "rainfall", "snow"])])
 
     # Load historical data
-    print("Loading historical data...")
+    # print("Loading historical data...")
 
     # historical_data = utils.load_data_with_historical(daily, station)
     # train_data_hist_pd, test_data_hist_pd = models.train_test_split(historical_data, test_date, daily)
@@ -84,8 +100,9 @@ if __name__ == "__main__":
         train_data= models.WindowDataset(train_data_pd[predictors_list[i][0]], window_size, 4, i)
         train_loader = torch.utils.data.DataLoader(train_data, batch_size=32, shuffle=True)
 
-        test_data = models.WindowDataset(test_data_pd[predictors_list[i][0]], window_size, 4, i)
-        test_loader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False)
+        if test_date:
+            test_data = models.WindowDataset(test_data_pd[predictors_list[i][0]], window_size, 4, i)
+            test_loader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False)
         x, y = next(iter(train_loader))
 
         # Create model
@@ -97,8 +114,9 @@ if __name__ == "__main__":
 
         # Train model
         print("Training model {}...".format(names_models[i][0]))
-        models.train_loop(model, train_loader,  optimizer, loss_function, epochs=50)
-        torch.save(model.state_dict(), model_path + names_models[i][0] + ".pth")
+        models.train_loop(model, train_loader,  optimizer, loss_function, epochs=5)
+        print("Training model {}...".format(os.path.join(model_path, names_models[i][0]) + ".pth"))
+        torch.save(model.state_dict(), os.path.join(model_path, names_models[i][0]) + ".pth")
 
         # Test model
         # print("Testing model {}...".format(names_models[i][0]))

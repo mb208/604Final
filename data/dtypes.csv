@@ -1,0 +1,26 @@
+,mindate,maxdate,name,datacoverage,id
+0,1994-03-19,1996-05-28,Average cloudiness midnight to midnight from 30-second ceilometer data,1.0,ACMC
+1,1965-01-01,2005-12-31,Average cloudiness midnight to midnight from manual observations,1.0,ACMH
+2,1994-02-01,1996-05-28,Average cloudiness sunrise to sunset from 30-second ceilometer data,1.0,ACSC
+3,1965-01-01,2005-12-31,Average cloudiness sunrise to sunset from manual observations,1.0,ACSH
+4,1991-06-05,2023-11-18,Base Data,0.95,ALL
+5,2010-01-01,2010-01-01,Long-term averages of annual cooling degree days with base 45F,1.0,ANN-CLDD-BASE45
+6,2010-01-01,2010-01-01,Long-term averages of annual cooling degree days with base 50F,1.0,ANN-CLDD-BASE50
+7,2010-01-01,2010-01-01,Long-term averages of annual cooling degree days with base 55F,1.0,ANN-CLDD-BASE55
+8,2010-01-01,2010-01-01,Long-term averages of annual cooling degree days with base 57F,1.0,ANN-CLDD-BASE57
+9,2010-01-01,2010-01-01,Long-term averages of annual cooling degree days with base 60F,1.0,ANN-CLDD-BASE60
+10,2010-01-01,2010-01-01,Long-term averages of annual cooling degree days with base 70F,1.0,ANN-CLDD-BASE70
+11,2010-01-01,2010-01-01,Long-term averages of annual cooling degree days with base 72F,1.0,ANN-CLDD-BASE72
+12,2010-01-01,2010-01-01,Long-term averages of annual cooling degree days with base 65F,1.0,ANN-CLDD-NORMAL
+13,2010-01-01,2010-01-01,Long-term averages of annual diurnal temperature range,1.0,ANN-DUTR-NORMAL
+14,2010-01-01,2010-01-01,Long-term averages of annual growing degree days with base 40F,1.0,ANN-GRDD-BASE40
+15,2010-01-01,2010-01-01,Long-term averages of annual growing degree days with base 45F,1.0,ANN-GRDD-BASE45
+16,2010-01-01,2010-01-01,Long-term averages of annual growing degree days with base 50F,1.0,ANN-GRDD-BASE50
+17,2010-01-01,2010-01-01,Long-term averages of annual growing degree days with base 55F,1.0,ANN-GRDD-BASE55
+18,2010-01-01,2010-01-01,Long-term averages of annual growing degree days with base 57F,1.0,ANN-GRDD-BASE57
+19,2010-01-01,2010-01-01,Long-term averages of annual growing degree days with base 60F,1.0,ANN-GRDD-BASE60
+20,2010-01-01,2010-01-01,Long-term averages of annual growing degree days with base 65F,1.0,ANN-GRDD-BASE65
+21,2010-01-01,2010-01-01,Long-term averages of annual growing degree days with base 70F,1.0,ANN-GRDD-BASE70
+22,2010-01-01,2010-01-01,Long-term averages of annual growing degree days with base 72F,1.0,ANN-GRDD-BASE72
+23,2010-01-01,2010-01-01,Long-term averages of annual growing degree days with truncated bases 48F and 86F,1.0,ANN-GRDD-TB4886
+24,2010-01-01,2010-01-01,Long-term averages of annual growing degree days with truncated bases 50F and 86F,1.0,ANN-GRDD-TB5086
