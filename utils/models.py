@@ -64,12 +64,13 @@ class LSTM(torch.nn.Module):
         h0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size).requires_grad_()
         c0 = torch.zeros(self.num_layers, input.size(0), self.hidden_size).requires_grad_()
 
-
         output, (hidden, cell) = self.lstm(input, (h0.detach(), c0.detach()))
         output = self.linear(output[:, -1, :])
         if self.sigmoid:
             output = self.activation(output)
         return output 
+    
+
 class SpecialCrossEntropyLoss(torch.nn.Module):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -141,7 +142,7 @@ def train_model(model, data_loader, optimizer, loss_fn, device = "cpu"):
 
 # MUST FIX THIS for classifier problems
 
-def test_model(model, data_loader, loss_fn, device= None):
+def test_model(model, data_loader, loss_fn, sc = None):
     model.eval()
     test_loss = 0
     with torch.no_grad():
@@ -150,11 +151,15 @@ def test_model(model, data_loader, loss_fn, device= None):
                 output = model(data, device)
             else:
                 output = model(data)
+            if sc:
+                print("here")
+                output = torch.tensor(sc.inverse_transform(output.numpy()))
+                target = torch.tensor(sc.inverse_transform(target.numpy()))
             loss_t = loss_fn(output, target)
             test_loss += np.sqrt(loss_t.item())
     return test_loss / len(data_loader)
 
-def test_model_classifier(model, data_loader, loss_fn):
+def test_model_classifier(model, data_loader, loss_fn, sc = None):
     model.eval()
     test_loss = 0
     splits = np.zeros(4)
