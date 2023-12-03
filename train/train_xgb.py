@@ -12,26 +12,21 @@ from prophet import Prophet
 
 import mlforecast
 from sklearn.metrics import mean_squared_error, accuracy_score, f1_score, roc_auc_score,  precision_score, recall_score
-from window_ops.rolling import rolling_mean, rolling_max, rolling_min
+from window_ops.rolling import rolling_mean
 import pickle
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--testdate', default= "2023/11/16", type=str,
+parser.add_argument('--testdate', default= "2023/11/24", type=str,
                     help='Date to split train/test data')
-
-# device = ("cuda" if torch.cuda.is_available() else "cpu")
 
 if __name__ == "__main__":
     # Variable setting
     args, unknown = parser.parse_known_args()
     test_date = args.testdate
     daily = True
-    station=None
     
     learning_rate = 51e-2
-
-    list_of_vars = ["temp_min", "temp_max", "temp_mean", "rainfall", "snow", "station"]
     
     model_lists = [xgb.XGBRegressor(n_estimators=1000, learning_rate=learning_rate, n_jobs=4,random_state=0)]*3 + \
     [xgb.XGBClassifier(n_estimators=1000, learning_rate=learning_rate, n_jobs=4,random_state=0)]*2
@@ -51,25 +46,31 @@ if __name__ == "__main__":
 
     # Load data
     print("Loading data...")
-    data = utils.load_data(daily, station)
+    data = utils.load_data(daily, cov=True)
     data["date"] = pd.to_datetime(data["date"])
     train_data_pd, test_data_pd = models.train_test_split(data, test_date, daily)
     
+    list_of_vars = []
+    # list_of_vars = data.drop(columns=["date", "station"]).columns.tolist()
+    list_of_vars = ["temp_min", "temp_max", "temp_mean", "rainfall", "snow", "station"]
+
     
     # Prparing data for xgboost fit
     train_data_pd.sort_values(by='date', ascending=True, inplace=True)
     test_data_pd.sort_values(by='date', ascending=True, inplace=True)
     
-    train_stations = train_data_pd.station
+    train_stations = train_data_pd.station.astype(str)
     test_stations = test_data_pd.station
     
-    train_data_pd = pd.get_dummies(train_data_pd, columns=['station'])
-    train_data_pd['station'] = train_stations
+    # train_data_pd = pd.get_dummies(train_data_pd, columns=['station'])
+    # train_data_pd['station'] = train_stations
     
     train_data_pd.dropna(inplace=True)
+    print(test_data_pd.shape)
     test_data_pd.dropna(inplace=True)
-    
-    static_feats = [feat for feat in train_data_pd.columns if 'station' in feat]
+    print(test_data_pd.shape)
+
+    # static_feats = [feat for feat in train_data_pd.columns if 'station' in feat]
     
     for feat in train_data_pd.columns:
         if 'snow' in feat or 'rain' in feat:
@@ -83,7 +84,7 @@ if __name__ == "__main__":
         # Create model
         fcst = mlforecast.MLForecast(models=[model_lists[i]],
                    freq='D',
-                   lags=[1,7,14],
+                   lags=[1,3,7],
                    lag_transforms={
                        1: [(rolling_mean, 7)],
                    },
@@ -91,11 +92,14 @@ if __name__ == "__main__":
                    num_threads=6)
         
         print("Training model {}...".format(list_of_vars[i]))
-        fcst.fit(train_data_pd,
+        fcst.fit(train_data_pd[['date', 'station'] + [list_of_vars[i]]],
                  id_col='station',
                  time_col='date',
                  target_col=list_of_vars[i], 
-                 static_features=static_feats)
+                #  max_horizon=4,
+                 static_features=[]
+                #  static_features=static_feats
+                 )
         
         model_pkl_file = model_path + list_of_vars[i] + ".pkl"
         print("Saving model {}...".format(model_pkl_file))
@@ -103,7 +107,8 @@ if __name__ == "__main__":
             pickle.dump(fcst, file)
             
         
-        results = test_data_pd.merge(fcst.predict(h = 4, X_df = test_data_pd),
+        results = test_data_pd.merge(fcst.predict(h = 4),
+                                                #   , X_df = test_data_pd),
                                      on = ['date', 'station'])
         
         print("TEST LOSS for model {} : {}".format(list_of_vars[i], 

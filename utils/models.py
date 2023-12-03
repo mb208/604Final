@@ -102,7 +102,8 @@ def model_predictor(y: str, X: list, train: pd.DataFrame,
         models[i].fit(train_st[['ds', 'y'] + X])
 
         future = models[i].make_future_dataframe(periods=days)
-        future = future.merge(test_st[['ds'] + X], on='ds') 
+        if X:
+            future = future.merge(test_st[['ds'] + X], on='ds') 
 
         forecast = models[i].predict(future)
 
