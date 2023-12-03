@@ -37,7 +37,7 @@ def load_data(daily, station = None, trainwindow = None, cov = False):
     return data
 
 __CITIES = (
-    "PANC KBOI KORD KDEN KDTW PHNL KIAH KMIA KMIC KOKC KBNA "
+    "PANC KBOI KORD KDEN KDTW PHNL KIAH KMIA KMSP KOKC KBNA "
     "KARB KJFK KPHX KPWM KPDX KSLC KSAN KSFO KSEA KDCA"
 ).split(" ")
 
@@ -81,7 +81,7 @@ def pull_data(window=7,test_date=None):
     # le = preprocessing.LabelEncoder()
     # le.fit(data["station"])
     # data["station"] = le.transform(data["station"])
-    return data.reset_index()
+    return data.reset_index().merge(cities, on="station")
     
     
 def load_data_with_historical(daily, station = None, trainwindow = None):
