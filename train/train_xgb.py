@@ -17,7 +17,8 @@ import pickle
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--testdate', default= "2023/11/24", type=str,
+# default= "2023/11/24"
+parser.add_argument('--testdate', default= None, type=str,
                     help='Date to split train/test data')
 
 if __name__ == "__main__":
@@ -48,7 +49,19 @@ if __name__ == "__main__":
     print("Loading data...")
     data = utils.load_data(daily, cov=True)
     data["date"] = pd.to_datetime(data["date"])
-    train_data_pd, test_data_pd = models.train_test_split(data, test_date, daily)
+    
+    # If test_date non None type then split data into train and test and evaluate trained model.
+    if test_date:
+        train_data_pd, test_data_pd = models.train_test_split(data, test_date, daily)
+        test_data_pd.sort_values(by='date', ascending=True, inplace=True)
+        print(test_data_pd.shape)
+        test_data_pd.dropna(inplace=True)
+        print(test_data_pd.shape)
+        for feat in train_data_pd.columns:
+            if 'snow' in feat or 'rain' in feat:
+                test_data_pd[feat] = test_data_pd[feat].astype(int)
+    else:
+        train_data_pd = data.copy()
     
     list_of_vars = []
     # list_of_vars = data.drop(columns=["date", "station"]).columns.tolist()
@@ -56,26 +69,21 @@ if __name__ == "__main__":
 
     
     # Prparing data for xgboost fit
-    train_data_pd.sort_values(by='date', ascending=True, inplace=True)
-    test_data_pd.sort_values(by='date', ascending=True, inplace=True)
-    
     train_stations = train_data_pd.station.astype(str)
-    test_stations = test_data_pd.station
+    train_data_pd.sort_values(by='date', ascending=True, inplace=True)
     
+    # test_stations = test_data_pd.station
     # train_data_pd = pd.get_dummies(train_data_pd, columns=['station'])
     # train_data_pd['station'] = train_stations
     
     train_data_pd.dropna(inplace=True)
-    print(test_data_pd.shape)
-    test_data_pd.dropna(inplace=True)
-    print(test_data_pd.shape)
+    
 
     # static_feats = [feat for feat in train_data_pd.columns if 'station' in feat]
     
     for feat in train_data_pd.columns:
         if 'snow' in feat or 'rain' in feat:
             train_data_pd[feat] = train_data_pd[feat].astype(int)
-            test_data_pd[feat] = test_data_pd[feat].astype(int)
         
 
     for i in range(5):
@@ -84,7 +92,7 @@ if __name__ == "__main__":
         # Create model
         fcst = mlforecast.MLForecast(models=[model_lists[i]],
                    freq='D',
-                   lags=[1,3,7],
+                   lags=[1,2,3,4,5,6,7],
                    lag_transforms={
                        1: [(rolling_mean, 7)],
                    },
@@ -106,13 +114,13 @@ if __name__ == "__main__":
         with open(model_pkl_file, 'wb') as file:  
             pickle.dump(fcst, file)
             
-        
-        results = test_data_pd.merge(fcst.predict(h = 4),
-                                                #   , X_df = test_data_pd),
-                                     on = ['date', 'station'])
-        
-        print("TEST LOSS for model {} : {}".format(list_of_vars[i], 
-                                                   loss_functions[i](results[list_of_vars[i]], 
-                                                                     results[pred_labels[i]])))
+        if test_date:
+            results = test_data_pd.merge(fcst.predict(h = 4),
+                                                    #   , X_df = test_data_pd),
+                                        on = ['date', 'station'])
+            
+            print("TEST LOSS for model {} : {}".format(list_of_vars[i], 
+                                                    loss_functions[i](results[list_of_vars[i]], 
+                                                                        results[pred_labels[i]])))
 
     print("Done training and testing models")
