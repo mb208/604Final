@@ -36,6 +36,7 @@ def load_data(daily, station = None, trainwindow = None, cov = False):
         data["station"] = le.transform(data["station"])
     return data
 
+
 __CITIES = (
     "PANC KBOI KORD KDEN KDTW PHNL KIAH KMIA KMSP KOKC KBNA "
     "KARB KJFK KPHX KPWM KPDX KSLC KSAN KSFO KSEA KDCA"
