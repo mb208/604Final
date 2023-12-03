@@ -9,45 +9,7 @@ from dateutil.relativedelta import relativedelta
 import argparse
 
 
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--timewindow', default=10, type=int,
-                    help='Time window in years to get data')
-parser.add_argument('--enddate', default=None, type=str,
-                    help='End date to get data')
-parser.add_argument('--traindatawindow', default=1, type=int,
-                    help='Time window in years for train data')
-
-lat_lons = {
-    "KARB" : (42.2231,-83.7453), # Ann Arbor Airport
-    "PANC" : (61.1743,-149.9963), # Ted Stevens Anchorage International Airport
-    "KBOI" : (43.5644,-116.2228), # Boise Air Terminal
-    "KORD" : (41.9742,-87.9073), # Chicago O'Hare International Airport
-    "KDEN" : (39.8561,-104.6737), # Denver International Airport
-    "KDTW" : (42.2125,-83.3533), # Detroit Metropolitan Airport
-    "PHNL" : (21.3187,-157.9225), # Honolulu International Airport
-    "KIAH" : (29.9844,-95.3414), # George Bush Intercontinental Airport
-    "KMIA" : (25.7933,-80.2906), # Miami International Airport
-    "KMSP" : (44.8831,-93.2289), # Minneapolis Saint Paul International Airport
-    "KOKC" : (35.3931,-97.6008), # Will Rogers World Airport
-    "KBNA" : (36.1244,-86.6782), # Nashville International Airport
-    "KJFK" : (40.6397,-73.7789), # John F. Kennedy International Airport
-    "KPHX" : (33.4342,-112.0117), # Phoenix Sky Harbor International Airport
-    "KPWM" : (43.6461,-70.3092), # Portland International Jetport
-    "KPDX" : (45.5886,-122.5975), # Portland International Airport
-    "KSLC" : (40.7884,-111.9778), # Salt Lake City International Airport
-    "KSAN" : (32.7336,-117.1897), # San Diego International Airport
-    "KSFO" : (37.6189,-122.3750), # San Francisco International Airport
-    "KSEA" : (47.4489,-122.3094), # Seattle Tacoma International Airport
-    "KDCA" : (38.8522,-77.0378) # Ronald Reagan Washington National Airport
-}
-
-if __name__ == "__main__":
-    # Setting variables
-    args, unknown = parser.parse_known_args()
-    time_window = args.timewindow
-    end_date = args.enddate
-    train_data_window = args.traindatawindow
+def download_data(time_window=10, end_date=None, train_data_window=1):
     if end_date == None:
         end_date = datetime.today()
     else:
@@ -87,14 +49,14 @@ if __name__ == "__main__":
     # daily_df_with_history = daily_df
     daily_df.set_index(["station", "date"], inplace=True)
     # filename = "../data/daily_data_{}.csv".format(train_data_window)
-    filename = "../data/daily_data.csv"
+    filename = "./data/daily_data.csv"
     daily_df.to_csv(filename)
 
     daily_df = daily_df.reset_index() 
     daily_df["date"] = pd.to_datetime(daily_df["date"])
     daily_df_with_history = daily_df[daily_df["date"] >= train_start_date]
     daily_df_with_history.set_index(["station", "date"], inplace=True)
-    filename = "../data/daily_data_one_year.csv"
+    filename = "./data/daily_data_one_year.csv"
     daily_df_with_history.to_csv(filename)
 
     daily_df["week"] = pd.DatetimeIndex(daily_df['date']).strftime('%U')
@@ -112,9 +74,52 @@ if __name__ == "__main__":
                                                                          hist_snow=('snow', 'mean'))
     # historical_df = historical_df.reset_index()
     # filename = "../data/historical_data_{}.csv".format(train_data_window)
-    filename = "../data/historical_data.csv"
+    filename = "./data/historical_data.csv"
     historical_df.to_csv(filename)
     # print(daily_df.join(historical_df, on=['week','station'], how='left'))
     
 
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--timewindow', default=10, type=int,
+                    help='Time window in years to get data')
+parser.add_argument('--enddate', default=None, type=str,
+                    help='End date to get data')
+parser.add_argument('--traindatawindow', default=1, type=int,
+                    help='Time window in years for train data')
+
+lat_lons = {
+    "KARB" : (42.2231,-83.7453), # Ann Arbor Airport
+    "PANC" : (61.1743,-149.9963), # Ted Stevens Anchorage International Airport
+    "KBOI" : (43.5644,-116.2228), # Boise Air Terminal
+    "KORD" : (41.9742,-87.9073), # Chicago O'Hare International Airport
+    "KDEN" : (39.8561,-104.6737), # Denver International Airport
+    "KDTW" : (42.2125,-83.3533), # Detroit Metropolitan Airport
+    "PHNL" : (21.3187,-157.9225), # Honolulu International Airport
+    "KIAH" : (29.9844,-95.3414), # George Bush Intercontinental Airport
+    "KMIA" : (25.7933,-80.2906), # Miami International Airport
+    "KMSP" : (44.8831,-93.2289), # Minneapolis Saint Paul International Airport
+    "KOKC" : (35.3931,-97.6008), # Will Rogers World Airport
+    "KBNA" : (36.1244,-86.6782), # Nashville International Airport
+    "KJFK" : (40.6397,-73.7789), # John F. Kennedy International Airport
+    "KPHX" : (33.4342,-112.0117), # Phoenix Sky Harbor International Airport
+    "KPWM" : (43.6461,-70.3092), # Portland International Jetport
+    "KPDX" : (45.5886,-122.5975), # Portland International Airport
+    "KSLC" : (40.7884,-111.9778), # Salt Lake City International Airport
+    "KSAN" : (32.7336,-117.1897), # San Diego International Airport
+    "KSFO" : (37.6189,-122.3750), # San Francisco International Airport
+    "KSEA" : (47.4489,-122.3094), # Seattle Tacoma International Airport
+    "KDCA" : (38.8522,-77.0378) # Ronald Reagan Washington National Airport
+}
+
+if __name__ == "__main__":
+    # Setting variables
+    args, unknown = parser.parse_known_args()
+    time_window = args.timewindow
+    end_date = args.enddate
+    train_data_window = args.traindatawindow
+    
+    download_data(time_window=time_window, 
+              end_date=end_date,
+              train_data_window=train_data_window)
+    

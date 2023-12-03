@@ -2,7 +2,7 @@ import torch
 import math
 import numpy as np
 import pandas as pd
-from prophet import Prophet
+# from prophet import Prophet
 from sklearn import preprocessing
 from sklearn.metrics import mean_squared_error
 
@@ -84,37 +84,37 @@ class SpecialCrossEntropyLoss(torch.nn.Module):
         return day1_loss + day2_loss + day3_loss + day4_loss
 
 # Prophet utilities
-def model_predictor(y: str, X: list, train: pd.DataFrame, 
-                    test: pd.DataFrame, stations: dict, 
-                    days: int = 4, verbose: bool = True):
+# def model_predictor(y: str, X: list, train: pd.DataFrame, 
+#                     test: pd.DataFrame, stations: dict, 
+#                     days: int = 4, verbose: bool = True):
     
-    models = dict()
-    for i, station in stations.items():
-        train_st = train.loc[train.station == station]
-        test_st = test.loc[test.station == station]
+#     models = dict()
+#     for i, station in stations.items():
+#         train_st = train.loc[train.station == station]
+#         test_st = test.loc[test.station == station]
 
-        train_st = pd.DataFrame(train_st.rename(columns={'date': 'ds', y: 'y'}))
-        test_st = pd.DataFrame(test_st.rename(columns={'date': 'ds', y: 'y'}))
+#         train_st = pd.DataFrame(train_st.rename(columns={'date': 'ds', y: 'y'}))
+#         test_st = pd.DataFrame(test_st.rename(columns={'date': 'ds', y: 'y'}))
 
-        models[i] = Prophet()
-        for x in X:
-            models[i].add_regressor(name=x)
+#         models[i] = Prophet()
+#         for x in X:
+#             models[i].add_regressor(name=x)
 
-        models[i].fit(train_st[['ds', 'y'] + X])
+#         models[i].fit(train_st[['ds', 'y'] + X])
 
-        future = models[i].make_future_dataframe(periods=days)
-        if X:
-            future = future.merge(test_st[['ds'] + X], on='ds') 
+#         future = models[i].make_future_dataframe(periods=days)
+#         if X:
+#             future = future.merge(test_st[['ds'] + X], on='ds') 
 
-        forecast = models[i].predict(future)
+#         forecast = models[i].predict(future)
 
-        eval_m = (pd.DataFrame(test_st[['ds', 'y']])
-                    .merge(forecast[['ds', 'yhat']], on='ds')
-                    )
-        if verbose:
-            print(f"RMSE = {np.sqrt(mean_squared_error(eval_m.y, eval_m.yhat))}")
+#         eval_m = (pd.DataFrame(test_st[['ds', 'y']])
+#                     .merge(forecast[['ds', 'yhat']], on='ds')
+#                     )
+#         if verbose:
+#             print(f"RMSE = {np.sqrt(mean_squared_error(eval_m.y, eval_m.yhat))}")
             
-    return models
+#     return models
 
 # I guess this is how you to do train test splits for temporal data 
 def train_test_split(data, date, daily=True):
