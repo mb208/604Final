@@ -35,7 +35,7 @@ if __name__ == "__main__":
     daily = args.is_daily
     predictor = args.predictor
     hidden_units = args.hidden_units
-    learning_rate = 5e-3
+    learning_rate = 5e-5
     if predictor == None:
         list_of_vars = ["temp_min", "temp_max", "temp_mean", "dwpt_min", "dwpt_max", "dwpt_mean", 
                         "rhum_min", "rhum_max", "rhum_mean", "pres_min", "pres_max", "pres_mean", 
@@ -59,11 +59,11 @@ if __name__ == "__main__":
         3 : [list_of_vars_2, list_of_vars_4], 4 : [list_of_vars_2, list_of_vars_4]}
     test_processes = {0 : models.test_model, 1 : models.test_model, 2 : models.test_model,
         3 : models.test_model_classifier, 4 : models.test_model_classifier}
-    model_path = "../models/lstm/"
+    model_path = "./models/lstm/"
 
     # Load data
     print("Loading data...")
-    data = utils.load_data(daily, station, cov=True)
+    data = utils.load_data(daily, station, trainwindow=1, cov=True)
     train_data_pd, test_data_pd = models.train_test_split(data, test_date, daily)
 
    
@@ -78,14 +78,13 @@ if __name__ == "__main__":
 
         # Create model
         inputsize = x.shape[2]
-        print(x.shape)
         model = models.LSTM(input_size=inputsize, hidden_size=hidden_units, output_size=4, num_layers=1, dropout=0.0)
         loss_function = loss_functions[i]
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
         # Train model
         print("Training model {}...".format(names_models[i][0]))
-        models.train_loop(model, train_loader,  optimizer, loss_function, epochs=1)
+        models.train_loop(model, train_loader,  optimizer, loss_function, epochs=50)
         torch.save(model.state_dict(), model_path + names_models[i][0] + ".pth")
 
         # Test model

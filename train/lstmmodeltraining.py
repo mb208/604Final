@@ -7,6 +7,7 @@ from utils import models
 import argparse
 import os
 from sklearn import preprocessing
+import pickle
 
 
 parser = argparse.ArgumentParser()
@@ -54,16 +55,26 @@ if __name__ == "__main__":
         3 : [list_of_vars_2, list_of_vars_4], 4 : [list_of_vars_2, list_of_vars_4]}
     test_processes = {0 : models.test_model, 1 : models.test_model, 2 : models.test_model,
         3 : models.test_model_classifier, 4 : models.test_model_classifier}
+    model_params = {0 : [64, 1], 1 : [32, 1] , 2 : [128, 1], 
+                    3 : [128, 2], 4 : [128, 2]}
+    
     model_path = "./models/lstm/"
 
     # Load data
     print("Loading data...")
-    data = utils.load_data(daily, station, trainwindow=1)
+    data = utils.load_data(daily, station, trainwindow=3)
     print(data.head())
     train_data_pd, test_data_pd = models.train_test_split(data, test_date, daily)
+    sc = preprocessing.StandardScaler()
+    # train_data_pd.loc[:, ~train_data_pd.columns.isin(["station", "date", "rainfall", "snow"])] = sc.fit_transform(train_data_pd.loc[:, ~train_data_pd.columns.isin(["station", "date", "rainfall", "snow"])])
+
+    # with open('./models/lstm//scaler.pkl','wb') as f:
+    #     pickle.dump(sc, f)
+    # test_data_pd.loc[:, ~test_data_pd.columns.isin(["station", "date", "rainfall", "snow"])] = sc.transform(test_data_pd.loc[:, ~test_data_pd.columns.isin(["station", "date", "rainfall", "snow"])])
 
     # Load historical data
     print("Loading historical data...")
+
     # historical_data = utils.load_data_with_historical(daily, station)
     # train_data_hist_pd, test_data_hist_pd = models.train_test_split(historical_data, test_date, daily)
 
@@ -79,7 +90,8 @@ if __name__ == "__main__":
 
         # Create model
         inputsize = x.shape[2]
-        model = models.LSTM(input_size=inputsize, hidden_size=hidden_units, output_size=4, num_layers=1, dropout=0.0)
+        model = models.LSTM(input_size=inputsize, hidden_size=model_params[i][0], output_size=4, num_layers=model_params[i][1],
+                             dropout=0.0)
         loss_function = loss_functions[i]
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -89,8 +101,8 @@ if __name__ == "__main__":
         torch.save(model.state_dict(), model_path + names_models[i][0] + ".pth")
 
         # Test model
-        print("Testing model {}...".format(names_models[i][0]))
-        print("TEST LOSS for model {} : {}".format(names_models[i][0], test_processes[i](model, test_loader, loss_function)))
+        # print("Testing model {}...".format(names_models[i][0]))
+        # print("TEST LOSS for model {} : {}".format(names_models[i][0], test_processes[i](model, test_loader, loss_function)))
 
         # Train model with historical data
         # train_data_hist= models.WindowDataset(train_data_hist_pd[predictors_list[i][1]], window_size, 4, i)
