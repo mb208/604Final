@@ -10,15 +10,16 @@ data = pd.read_csv('/Users/Bakso/Documents/git/604Final/data/daily_data.csv')
 data.dropna(inplace = True)
 data['date'] = pd.to_datetime(data['date'])
 latest_date = pd.to_datetime(data['date'].max())
-nine_days_ago = latest_date - timedelta(days=9)
-data = data[pd.to_datetime(data['date']) <= nine_days_ago]
+# nine_days_ago = latest_date - timedelta(days=9)
+# data = data[pd.to_datetime(data['date']) <= nine_days_ago]
 stations = data['station'].unique()
 
 
 column_names = ['station', 'date', 'temp_mean', 'temp_min', 'temp_max']
 df = pd.DataFrame(columns=column_names)
 
-pred_date_range = pd.date_range(start=nine_days_ago + pd.DateOffset(days=1), periods=9, freq='D')
+# pred_date_range = pd.date_range(start=nine_days_ago + pd.DateOffset(days=1), periods=9, freq='D')
+pred_date_range = pd.date_range(start=latest_date + pd.DateOffset(days=1), periods=9, freq='D')
 
 def optimize_ARIMA(order_list, exog):
     results = []
